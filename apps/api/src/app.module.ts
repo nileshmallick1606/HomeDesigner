@@ -10,6 +10,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { MediaModule } from './media/media.module';
 import { R2Module } from './r2/r2.module';
+import { AiModule } from './ai/ai.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -32,6 +33,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     RoomsModule,
     MediaModule,
     R2Module,
+    AiModule,
     HealthModule,
   ],
   providers: [
