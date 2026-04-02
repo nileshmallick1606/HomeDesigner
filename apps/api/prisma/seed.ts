@@ -20,13 +20,13 @@ const TEMPLATES = [
 async function main() {
   console.log('Seeding templates...');
 
+  // Delete existing system templates and re-create
+  await prisma.template.deleteMany({ where: { isSystem: true } });
+
   for (let i = 0; i < TEMPLATES.length; i++) {
     const t = TEMPLATES[i];
-    await prisma.template.upsert({
-      where: { id: `seed-template-${String(i + 1).padStart(3, '0')}` },
-      update: {},
-      create: {
-        id: `seed-template-${String(i + 1).padStart(3, '0')}`,
+    await prisma.template.create({
+      data: {
         name: t.name,
         description: t.description,
         category: t.category as 'CIVIL' | 'FURNISHINGS' | 'BATHROOM_CAT' | 'KITCHEN_CAT' | 'ELECTRICAL' | 'OTHER',
@@ -36,6 +36,7 @@ async function main() {
         sortOrder: i,
       },
     });
+    console.log(`  Created: ${t.name}`);
   }
 
   console.log(`Seeded ${TEMPLATES.length} templates.`);
