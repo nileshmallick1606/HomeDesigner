@@ -11,6 +11,11 @@ import { RoomsModule } from './rooms/rooms.module';
 import { MediaModule } from './media/media.module';
 import { R2Module } from './r2/r2.module';
 import { AiModule } from './ai/ai.module';
+import { TemplatesModule } from './templates/templates.module';
+import { BudgetsModule } from './budgets/budgets.module';
+import { SharingModule } from './sharing/sharing.module';
+import { CommentsModule } from './comments/comments.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -34,6 +39,11 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     MediaModule,
     R2Module,
     AiModule,
+    TemplatesModule,
+    BudgetsModule,
+    SharingModule,
+    CommentsModule,
+    NotificationsModule,
     HealthModule,
   ],
   providers: [
