@@ -39,6 +39,27 @@ SPEC-010 (Auth + Profile)     SPEC-011 (AI Worker)
          └→ SPEC-016 (Fabric.js Editor)
 ```
 
+## Feature: InteriorScience Phase 3 (UI/UX Polish + Feature Completion)
+
+| Spec | Title | BRD Features | Prerequisites | Status | Date |
+|------|-------|-------------|--------------|--------|------|
+| SPEC-017 | Design System & UX Foundation | P3-F1 | None | Designed | 2026-04-02 |
+| SPEC-018 | UI Polish & Error Handling | P3-F1 | SPEC-017 | Designed | 2026-04-02 |
+| SPEC-019 | Fabric.js Design Editor | P3-F2 | SPEC-017 | Designed | 2026-04-02 |
+| SPEC-020 | Export Functionality | P3-F3 | SPEC-017 | Designed | 2026-04-02 |
+| SPEC-021 | Template Seed Data & WebSocket | P3-F4, P3-F5 | SPEC-017 | Designed | 2026-04-02 |
+| SPEC-022 | AI Visualization Quality | P3-F6 | None | Designed | 2026-04-02 |
+
+## Phase 3 Dependency Graph
+
+```
+SPEC-017 (Design System)     SPEC-022 (AI Quality)
+    ├→ SPEC-018 (UI Polish)
+    ├→ SPEC-019 (Fabric.js Editor)
+    ├→ SPEC-020 (Export)
+    └→ SPEC-021 (Templates + WebSocket)
+```
+
 ## Documents
 - Phase 1 PRD: specifications/InteriorScience-PRD.md
 - Phase 1 TRD: specifications/InteriorScience-TRD.md
@@ -46,3 +67,6 @@ SPEC-010 (Auth + Profile)     SPEC-011 (AI Worker)
 - Phase 2 BRD: specifications/InteriorScience-Phase2-BRD.md
 - Phase 2 TRD: specifications/InteriorScience-Phase2-TRD.md
 - Phase 2 Specs: specifications/specs/InteriorScience-Phase2/
+- Phase 3 BRD: specifications/InteriorScience-Phase3-BRD.md
+- Phase 3 TRD: specifications/InteriorScience-Phase3-TRD.md
+- Phase 3 Specs: specifications/specs/InteriorScience-Phase3/
