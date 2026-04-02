@@ -6,6 +6,8 @@ import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { ProjectsModule } from './projects/projects.module';
+import { RoomsModule } from './rooms/rooms.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -24,6 +26,8 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     PrismaModule,
     AuthModule,
     UsersModule,
+    ProjectsModule,
+    RoomsModule,
     HealthModule,
   ],
   providers: [
