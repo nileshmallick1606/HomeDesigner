@@ -28,6 +28,7 @@ export class AiController {
       category: string;
       subCategory?: string;
       options?: Record<string, unknown>;
+      preset?: 'draft' | 'final';
     },
   ) {
     const user = req.user as { sub: string };

@@ -48,7 +48,7 @@ export class AiService {
   async requestVisualization(
     userId: string,
     roomPhotoId: string,
-    designData: { category: string; subCategory?: string; options?: Record<string, unknown> },
+    designData: { category: string; subCategory?: string; options?: Record<string, unknown>; preset?: 'draft' | 'final' },
   ) {
     await this.checkRateLimit(userId);
 

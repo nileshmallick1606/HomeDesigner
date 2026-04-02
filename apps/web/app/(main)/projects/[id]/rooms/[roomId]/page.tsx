@@ -64,6 +64,7 @@ export default function RoomDetailPage() {
 
   // Visualization state
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [preset, setPreset] = useState<'draft' | 'final'>('draft');
   const [generating, setGenerating] = useState(false);
   const [activeJobId, setActiveJobId] = useState('');
 
@@ -89,6 +90,7 @@ export default function RoomDetailPage() {
         json: {
           roomPhotoId: room.photos[0].id,
           category: selectedCategory,
+          preset,
         },
       });
       setActiveJobId(result.jobId);
@@ -260,17 +262,32 @@ export default function RoomDetailPage() {
           <CategorySelector onSelect={setSelectedCategory} selected={selectedCategory} />
 
           {selectedCategory && (
-            <Button
-              variant="contained"
-              size="large"
-              fullWidth
-              onClick={handleGenerate}
-              disabled={generating}
-              startIcon={generating ? <CircularProgress size={20} color="inherit" /> : undefined}
-              sx={{ mt: 2 }}
-            >
-              {generating ? 'Generating...' : `Generate ${selectedCategory.replace(/_/g, ' ')} Visualization`}
-            </Button>
+            <>
+              <Box sx={{ display: 'flex', gap: 1, mt: 2, mb: 1 }}>
+                <Chip
+                  label="Draft (Fast)"
+                  onClick={() => setPreset('draft')}
+                  color={preset === 'draft' ? 'primary' : 'default'}
+                  variant={preset === 'draft' ? 'filled' : 'outlined'}
+                />
+                <Chip
+                  label="Final (Quality)"
+                  onClick={() => setPreset('final')}
+                  color={preset === 'final' ? 'primary' : 'default'}
+                  variant={preset === 'final' ? 'filled' : 'outlined'}
+                />
+              </Box>
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth
+                onClick={handleGenerate}
+                disabled={generating}
+                startIcon={generating ? <CircularProgress size={20} color="inherit" /> : undefined}
+              >
+                {generating ? 'Generating...' : `Generate ${selectedCategory.replace(/_/g, ' ')} (${preset})`}
+              </Button>
+            </>
           )}
 
           {activeJobId && (
