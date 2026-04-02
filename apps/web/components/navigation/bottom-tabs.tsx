@@ -12,7 +12,7 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import PersonIcon from '@mui/icons-material/Person';
 
 const tabs = [
-  { label: 'Home', icon: <HomeIcon />, href: '/' },
+  { label: 'Home', icon: <HomeIcon />, href: '/dashboard' },
   { label: 'Projects', icon: <FolderIcon />, href: '/projects' },
   { label: 'Capture', icon: <AddCircleIcon sx={{ fontSize: 36 }} />, href: '/capture' },
   { label: 'Library', icon: <GridViewIcon />, href: '/library' },
@@ -23,7 +23,7 @@ export function BottomTabs() {
   const pathname = usePathname();
 
   const currentTab = tabs.findIndex((tab) => {
-    if (tab.href === '/') return pathname === '/';
+    if (tab.href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(tab.href);
   });
 

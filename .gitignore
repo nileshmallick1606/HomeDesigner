@@ -27,6 +27,9 @@ Thumbs.db
 # Docker
 docker/data/
 
+# Local uploads (dev fallback for R2)
+uploads/
+
 # Testing
 coverage/
 .nyc_output/

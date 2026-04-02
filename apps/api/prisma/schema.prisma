@@ -144,11 +144,8 @@ model OrgMember {
   role     OrgMemberRole @default(MEMBER)
   joinedAt DateTime      @default(now()) @map("joined_at")
 
-  user String? @ignore
-  org  String? @ignore
-
-  userRel Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  orgRel  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@unique([userId, orgId])
   @@map("org_members")

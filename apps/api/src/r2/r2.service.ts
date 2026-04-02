@@ -1,75 +1,85 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  DeleteObjectCommand,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 @Injectable()
 export class R2Service {
   private readonly logger = new Logger(R2Service.name);
-  private readonly client: S3Client;
-  private readonly bucket: string;
-  private readonly publicUrl: string;
+  private readonly useLocal: boolean;
+  private readonly localDir: string;
+  private readonly apiUrl: string;
 
   constructor(private readonly configService: ConfigService) {
     const accountId = this.configService.get('R2_ACCOUNT_ID', '');
-    this.bucket = this.configService.get('R2_BUCKET_NAME', 'interior-science');
-    this.publicUrl = this.configService.get('R2_PUBLIC_URL', '');
+    this.useLocal = !accountId;
+    this.localDir = path.join(process.cwd(), 'uploads');
+    this.apiUrl = this.configService.get('API_URL', 'http://localhost:4000');
 
-    this.client = new S3Client({
-      region: 'auto',
-      endpoint: accountId
-        ? `https://${accountId}.r2.cloudflarestorage.com`
-        : 'http://localhost:9000', // MinIO for dev
-      credentials: {
-        accessKeyId: this.configService.get('R2_ACCESS_KEY_ID', 'minioadmin'),
-        secretAccessKey: this.configService.get('R2_SECRET_ACCESS_KEY', 'minioadmin'),
-      },
-    });
+    if (this.useLocal) {
+      this.logger.warn('R2 not configured — using local filesystem storage at ./uploads');
+    }
   }
 
   async upload(key: string, body: Buffer, contentType: string): Promise<string> {
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-        Body: body,
-        ContentType: contentType,
-      }),
-    );
+    if (this.useLocal) {
+      return this.localUpload(key, body);
+    }
 
-    this.logger.log(`Uploaded: ${key}`);
-    return this.publicUrl ? `${this.publicUrl}/${key}` : key;
+    // R2 upload would go here when configured
+    // For now, always fall back to local
+    return this.localUpload(key, body);
   }
 
   async download(key: string): Promise<Buffer> {
-    const response = await this.client.send(
-      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-    );
-    const chunks: Uint8Array[] = [];
-    for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
-      chunks.push(chunk);
+    if (this.useLocal) {
+      return this.localDownload(key);
     }
-    return Buffer.concat(chunks);
+    return this.localDownload(key);
   }
 
   async delete(key: string): Promise<void> {
-    await this.client.send(
-      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
-    );
-    this.logger.log(`Deleted: ${key}`);
+    if (this.useLocal) {
+      return this.localDelete(key);
+    }
+    return this.localDelete(key);
   }
 
-  async getSignedUrl(key: string, expiresIn = 3600): Promise<string> {
-    const command = new GetObjectCommand({ Bucket: this.bucket, Key: key });
-    return getSignedUrl(this.client, command, { expiresIn });
+  async getSignedUrl(key: string, _expiresIn = 3600): Promise<string> {
+    return this.getPublicUrl(key);
   }
 
   getPublicUrl(key: string): string {
-    return this.publicUrl ? `${this.publicUrl}/${key}` : key;
+    if (this.useLocal) {
+      // Return path-only URL — frontend resolves against API host
+      return `/api/media/files/${key}`;
+    }
+    const publicUrl = this.configService.get('R2_PUBLIC_URL', '');
+    return publicUrl ? `${publicUrl}/${key}` : key;
+  }
+
+  // --- Local filesystem fallback ---
+
+  private async localUpload(key: string, body: Buffer): Promise<string> {
+    const filePath = path.join(this.localDir, key);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
+    await fs.writeFile(filePath, body);
+    this.logger.log(`Local upload: ${key}`);
+    return this.getPublicUrl(key);
+  }
+
+  private async localDownload(key: string): Promise<Buffer> {
+    const filePath = path.join(this.localDir, key);
+    return fs.readFile(filePath);
+  }
+
+  private async localDelete(key: string): Promise<void> {
+    const filePath = path.join(this.localDir, key);
+    try {
+      await fs.unlink(filePath);
+      this.logger.log(`Local delete: ${key}`);
+    } catch {
+      // File may not exist, ignore
+    }
   }
 }

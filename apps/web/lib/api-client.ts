@@ -1,5 +1,7 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
 
+const TOKEN_KEY = 'interior_science_token';
+
 interface FetchOptions extends RequestInit {
   json?: unknown;
 }
@@ -7,8 +9,25 @@ interface FetchOptions extends RequestInit {
 class ApiClient {
   private accessToken: string | null = null;
 
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.accessToken = localStorage.getItem(TOKEN_KEY);
+    }
+  }
+
   setToken(token: string | null) {
     this.accessToken = token;
+    if (typeof window !== 'undefined') {
+      if (token) {
+        localStorage.setItem(TOKEN_KEY, token);
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+    }
+  }
+
+  getToken(): string | null {
+    return this.accessToken;
   }
 
   async fetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
@@ -28,8 +47,7 @@ class ApiClient {
       credentials: 'include',
     });
 
-    if (response.status === 401 && this.accessToken) {
-      // Try refresh
+    if (response.status === 401) {
       const refreshed = await this.refresh();
       if (refreshed) {
         headers['Authorization'] = `Bearer ${this.accessToken}`;
@@ -44,6 +62,11 @@ class ApiClient {
         }
         return retryResponse.json();
       }
+      if (typeof window !== 'undefined') {
+        this.setToken(null);
+        window.location.href = '/login';
+      }
+      throw new ApiError(401, 'Session expired');
     }
 
     if (!response.ok) {
@@ -69,13 +92,13 @@ class ApiClient {
       });
       if (res.ok) {
         const data = await res.json();
-        this.accessToken = data.accessToken;
+        this.setToken(data.accessToken);
         return true;
       }
     } catch {
       // refresh failed
     }
-    this.accessToken = null;
+    this.setToken(null);
     return false;
   }
 }

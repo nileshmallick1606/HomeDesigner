@@ -30,7 +30,7 @@ export default function LoginPage() {
         json: { email, password },
       });
       apiClient.setToken(result.accessToken);
-      router.push('/');
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {

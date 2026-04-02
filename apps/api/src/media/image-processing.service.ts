@@ -18,12 +18,10 @@ export class ImageProcessingService {
       throw new BadRequestException(`File too large. Max size: ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB`);
     }
 
-    // Check magic bytes (DC-5)
     let detectedType: string | null = null;
     for (const [mimeType, bytes] of Object.entries(MAGIC_BYTES)) {
       if (bytes.every((byte, i) => buffer[i] === byte)) {
         if (mimeType === 'image/webp') {
-          // WebP needs additional check: RIFF....WEBP
           if (buffer.length >= 12 && buffer.toString('ascii', 8, 12) === 'WEBP') {
             detectedType = mimeType;
             break;
@@ -43,25 +41,23 @@ export class ImageProcessingService {
   }
 
   async stripExif(buffer: Buffer): Promise<Buffer> {
-    // Sharp strips EXIF by default when processing (DC-5)
-    return sharp(buffer).rotate().toBuffer(); // rotate() applies EXIF orientation then strips
+    return sharp(buffer).rotate().toBuffer();
   }
 
   async compress(buffer: Buffer): Promise<{ buffer: Buffer; width: number; height: number }> {
-    const image = sharp(buffer);
-    const metadata = await image.metadata();
+    const metadata = await sharp(buffer).metadata();
 
     const maxDimension = 4096;
     const needsResize =
       (metadata.width && metadata.width > maxDimension) ||
       (metadata.height && metadata.height > maxDimension);
 
-    let result = image;
+    let pipeline = sharp(buffer);
     if (needsResize) {
-      result = result.resize(maxDimension, maxDimension, { fit: 'inside', withoutEnlargement: true });
+      pipeline = pipeline.resize(maxDimension, maxDimension, { fit: 'inside', withoutEnlargement: true });
     }
 
-    const output = await result.webp({ quality: 85 }).toBuffer({ resolveWithObject: true });
+    const output = await pipeline.webp({ quality: 85 }).toBuffer({ resolveWithObject: true });
 
     return {
       buffer: output.data,

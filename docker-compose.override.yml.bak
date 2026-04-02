@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Development overrides — hot reload via volume mounts
 services:
   api:

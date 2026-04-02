@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(break)",
+      "Bash(cp .env.example .env.local)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx prisma:*)",
+      "Bash(DATABASE_URL=\"postgresql://interior:interior_dev@localhost:5432/interior_science\" npx prisma generate)",
+      "Bash(npx nest:*)",
+      "Bash(npx next:*)",
+      "Bash(npx jest:*)",
+      "Bash(mv:*)",
+      "Bash(profile\")",
+      "Bash(node:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}

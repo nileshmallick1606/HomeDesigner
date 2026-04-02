@@ -20,6 +20,8 @@ export class MediaService {
     fileBuffer: Buffer,
     mimeType?: string,
   ) {
+    this.logger.log(`Processing upload: ${fileBuffer.length} bytes, mime: ${mimeType}, room: ${roomId}`);
+
     // Step 1: Validate image (DC-5: magic bytes)
     const detectedMimeType = this.imageProcessing.validateImage(fileBuffer, mimeType);
 

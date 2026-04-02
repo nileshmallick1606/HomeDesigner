@@ -36,11 +36,13 @@ export function PhotoUpload({ roomId, onUploadComplete }: PhotoUploadProps) {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Use fetch directly for multipart upload with progress
-      const response = await fetch(`/api/media/upload/${roomId}`, {
+      // Upload directly to API (bypass Next.js proxy for multipart)
+      const token = localStorage.getItem('interior_science_token');
+      const apiHost = window.location.hostname;
+      const response = await fetch(`http://${apiHost}:4000/api/media/upload/${roomId}`, {
         method: 'POST',
         body: formData,
-        credentials: 'include',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
 
       if (!response.ok) {
