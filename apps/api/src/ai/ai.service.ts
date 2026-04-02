@@ -3,7 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 
-const AI_RATE_LIMITS = { FREE_DAILY: 10, PAID_DAILY: 50 };
+const AI_RATE_LIMITS = { FREE_DAILY: 99999999, PAID_DAILY: 99999999 };
 
 @Injectable()
 export class AiService {
