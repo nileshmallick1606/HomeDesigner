@@ -36,8 +36,8 @@ export default function LibraryPage() {
     setLoading(true);
     const query = selectedType === 'All' ? '' : `?roomType=${encodeURIComponent(selectedType)}`;
     apiClient
-      .fetch<Template[]>(`/templates${query}`)
-      .then(setTemplates)
+      .fetch<{ data: Template[] }>(`/templates${query}`)
+      .then((res) => setTemplates(res.data || []))
       .catch(() => setTemplates([]))
       .finally(() => setLoading(false));
   }, [selectedType]);

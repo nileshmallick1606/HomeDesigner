@@ -2,15 +2,36 @@
 
 > **See your renovated space before a single wall is touched.**
 
-InteriorScience is an AI-powered platform that helps homeowners and architects visualize, plan, and manage home interior renovations. Upload photos of your rooms, apply design changes, and see realistic before/after previews.
+InteriorScience is an AI-powered platform that helps homeowners and architects visualize, plan, and manage home interior renovations. Upload photos of your rooms, select a design category, and see AI-generated before/after previews — all from your phone or desktop browser.
+
+---
+
+## Table of Contents
+
+1. [Getting Started](#getting-started)
+2. [Navigation](#navigation)
+3. [Projects](#projects)
+4. [Rooms](#rooms)
+5. [Photos](#photos)
+6. [AI Visualization](#ai-visualization)
+7. [Before/After Comparison](#beforeafter-comparison)
+8. [Budget Tracking](#budget-tracking)
+9. [Sharing & Collaboration](#sharing--collaboration)
+10. [Comments](#comments)
+11. [Notifications](#notifications)
+12. [Camera Capture](#camera-capture)
+13. [Design Library](#design-library)
+14. [Profile & Account](#profile--account)
+15. [Complete User Flows](#complete-user-flows)
+16. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Getting Started
 
-### 1. Create Your Account
+### Create Your Account
 
-1. Open the app at **http://localhost:3000**
+1. Open the app at your server URL (e.g., `http://localhost:3000`)
 2. Click **"Get Started"** on the landing page
 3. Fill in your details:
    - **Full Name** — your display name
@@ -18,43 +39,52 @@ InteriorScience is an AI-powered platform that helps homeowners and architects v
    - **Password** — minimum 8 characters, must include uppercase, lowercase, and a number
    - **Profile Type** — choose one:
      - **Homeowner** — planning your own renovation
-     - **Architect (Individual)** — freelance designer managing client projects
-     - **Architecture Organization** — firm with multiple team members
+     - **Architect (Individual)** — freelance designer
+     - **Architecture Organization** — design firm
 4. Click **"Create Account"**
-5. You'll be redirected to the login page
+5. You'll be redirected to the sign-in page
 
-### 2. Sign In
+### Sign In
 
-1. Go to **http://localhost:3000/login**
-2. Enter your email and password
-3. Click **"Sign In"**
-4. You'll land on your **Dashboard**
+1. Enter your email and password
+2. Click **"Sign In"**
+3. You'll land on your **Dashboard**
 
-> **Tip:** Already signed in? Visiting the landing page automatically redirects you to the dashboard.
+> **Tip:** If you're already signed in, visiting the landing page automatically redirects you to the dashboard.
 
 ---
 
 ## Navigation
 
-The app uses a **bottom tab bar** with 5 sections:
+### Bottom Tab Bar
 
-| Tab | Icon | What It Does |
-|-----|------|-------------|
-| **Home** | 🏠 | Dashboard — your recent projects at a glance |
-| **Projects** | 📁 | All your renovation projects |
-| **Capture** | ➕ | Camera capture (coming soon) |
-| **Library** | 📐 | Design templates for inspiration (coming soon) |
-| **Profile** | 👤 | Your account settings (coming soon) |
+The app uses a **fixed bottom tab bar** on every screen with 5 sections:
+
+| Tab | What It Does |
+|-----|-------------|
+| **Home** | Dashboard — your recent projects at a glance |
+| **Projects** | Full list of all your renovation projects |
+| **Capture** | Camera capture — photograph rooms directly |
+| **Library** | Browse design templates for inspiration |
+| **Profile** | Your account, settings, and logout |
+
+### Notification Bell
+
+A **bell icon** appears at the top-right of every page. It shows a red badge with your unread notification count (max "99+"). Click it to see recent notifications and mark them as read.
+
+### Route Protection
+
+All app pages are protected — if you're not signed in, you'll be automatically redirected to the login page.
 
 ---
 
-## Core Features
-
-### Creating a Project
+## Projects
 
 A **project** represents one renovation — like "Flat 302 Renovation" or "Kitchen Remodel 2026."
 
-1. From the **Dashboard** or **Projects** tab, click **"Create New Project"**
+### Creating a Project
+
+1. From the **Dashboard** or **Projects** tab, click **"Create New Project"** (or the floating **+** button)
 2. Fill in:
    - **Project Name** (required) — e.g., "Flat 11D Sankalpa 2 Renovation"
    - **Description** (optional) — notes about the renovation scope
@@ -62,152 +92,343 @@ A **project** represents one renovation — like "Flat 302 Renovation" or "Kitch
 3. Click **"Create Project"**
 4. You'll see your new project's detail page
 
-### Managing Rooms
+### Project Detail Page
+
+Shows everything about your project:
+- **Project header** — name, status badge, budget, description
+- **Share button** — share your project with family or contractors
+- **Rooms section** — grid of room cards with type icons
+- **Budget summary** — overall progress bar + category breakdown
+- **Comments section** — discuss the project with collaborators
+
+---
+
+## Rooms
 
 Each project contains **rooms** — the individual spaces you're renovating.
 
-**Adding a Room:**
+### Adding a Room
+
 1. Open a project
 2. Click **"Add Room"**
-3. Select a **room type** from the grid:
-   - 🛁 Bathroom
-   - 🍳 Kitchen
-   - 🛏️ Bedroom
-   - 🛋️ Living Room
-   - 🍽️ Dining Room
-   - 🌿 Balcony
-   - 🔧 Utility
-   - 📐 Custom
+3. Select a **room type** from the 8-card grid:
+   - Bathroom, Kitchen, Bedroom, Living Room, Dining Room, Balcony, Utility, Custom
 4. The room name auto-fills from the type (you can customize it)
 5. Click **"Add Room"**
 
-**Viewing Rooms:**
-- Rooms appear as cards in the project detail page
-- Each card shows the room icon, name, and type
-- Click a room card to open the room detail page
+### Room Detail Page
+
+The room detail page is the **most feature-rich screen** in the app. It contains:
+
+1. **Photos section** — upload, view, and delete room photos
+2. **Start Design section** — select a category and generate AI visualizations
+3. **Designs section** — view all saved design visualizations
+4. **Budget section** — track estimated vs actual costs by category
+
+---
+
+## Photos
 
 ### Uploading Photos
 
-Photos are the foundation of your renovation visualization.
-
-**To upload a photo:**
 1. Open a room's detail page
-2. Click the **"Upload Photo"** button
-3. Select an image from your device (JPEG, PNG, or WebP, max 20MB)
-4. Wait for the upload to complete (progress bar shown)
-5. The photo appears in the gallery grid
+2. Click the **"Upload Photo"** button (dashed border area)
+3. Select an image from your device
+   - **Supported formats:** JPEG, PNG, WebP
+   - **Max size:** 20MB
+4. A progress bar shows during upload
+5. The photo appears in the gallery grid immediately
 
 **What happens during upload:**
-- The image is validated for correct format
-- EXIF data (location, camera info) is automatically stripped for privacy
+- The image is validated (magic byte checking for security)
+- EXIF data (GPS location, camera info) is automatically stripped for privacy
 - The image is compressed and converted to WebP format
 - Three thumbnail sizes are generated (300px, 600px, 1200px)
-- The original quality image is preserved
 
-**Deleting a photo:**
-1. In the photo gallery, click the **🗑️ delete icon** on any photo (top-right corner)
+### Deleting Photos
+
+1. In the photo gallery, click the **trash icon** on any photo (top-right corner)
 2. A confirmation dialog shows a preview of the photo
 3. Click **"Delete"** to confirm, or **"Cancel"** to keep it
 
-### Viewing Projects
+---
 
-**Dashboard** (`Home` tab):
-- Shows your 6 most recent projects
-- Each project card displays: name, status, room count
+## AI Visualization
 
-**Projects List** (`Projects` tab):
-- Shows all your projects
-- Use the floating **+** button (bottom-right) to create a new project
+This is the **core feature** of InteriorScience — see what your room would look like with different renovation changes.
 
-**Project Detail** (click any project):
-- Project name, status badge, budget, and description
-- Grid of all rooms with type icons
-- Quick access to add more rooms
+### Requesting a Visualization
+
+1. Upload at least one photo to a room (the "Start Design" section only appears when photos exist)
+2. Select a **design category** from the 6 options:
+
+   | Category | What It Simulates | Visual Effect |
+   |----------|-------------------|---------------|
+   | **Civil** | Wall paint, plaster | Blue tint |
+   | **Furnishings** | New furniture, decor | Warm brightness |
+   | **Bathroom** | New tiles, fixtures | Cyan tone |
+   | **Kitchen** | Cabinets, countertops | Green tint |
+   | **Electrical** | New lighting | Warm temperature |
+   | **Other** | General changes | Sepia tone |
+
+3. Click **"Generate [Category] Visualization"**
+4. Watch the progress:
+   - **Queued** — waiting in the processing queue
+   - **Processing** — AI is generating the visualization (may take up to 60 seconds)
+   - **Complete** — result is ready!
+   - **Failed** — something went wrong (retry available)
+
+5. The **Before/After Slider** appears showing your original photo alongside the AI-generated visualization
+
+> **Note:** Current visualizations use mock AI transforms (color/style filters) with an "AI Preview (Mock)" watermark. Real AI model integration (Stable Diffusion + ControlNet) is planned for a future release.
+
+### Viewing Saved Designs
+
+All generated designs appear as **cards** below the visualization section. Each card shows:
+- Thumbnail of the generated image
+- Category label
+- Status badge
+
+Click any card to open the **Design Detail Page** with:
+- Full-width before/after slider
+- Design metadata (category, model version, creation date)
+- **Regenerate** button — create a new visualization
+- **Delete** button — remove this design
 
 ---
 
-## User Flow Summary
+## Before/After Comparison
 
-Here's the complete flow from start to finish:
+The **Before/After Slider** is an interactive comparison tool:
+
+- **Drag** the slider handle left/right to reveal before or after
+- **Arrow keys** (← →) for fine control
+- **Labels** show "Before" (original) and "After" (AI visualization)
+- Available on both the room detail page (300px height) and design detail page (400px height)
+
+---
+
+## Budget Tracking
+
+Track your renovation costs at both the project level and room level.
+
+### Project Budget Summary
+
+On the project detail page, the **Budget Summary** shows:
+- Overall budget amount you set
+- Total estimated costs (sum of all room budgets)
+- Total actual costs spent so far
+- **Color-coded progress bar:**
+  - Green — under 70% of budget spent
+  - Yellow — 70-90% of budget spent
+  - Red — over 90% of budget spent
+- Category breakdown list
+
+### Room Budget Editor
+
+On the room detail page, the **Budget Editor** lets you:
+1. **Add a budget item:**
+   - Select a category (Civil, Furnishings, Bathroom, Kitchen, Electrical, Other)
+   - Enter estimated amount (₹)
+   - Enter actual amount (₹)
+   - Click **"Add Item"**
+2. **Delete a budget item** — click the trash icon next to any item
+3. Items are tracked per-category within each room
+4. All room budgets roll up to the project-level summary
+
+---
+
+## Sharing & Collaboration
+
+### Sharing a Project
+
+1. On the project detail page, click the **Share icon** (top-right, near project name)
+2. In the Share Dialog:
+   - Select a **role** for the recipient:
+     - **Viewer** — can see everything but not edit
+     - **Editor** — can edit rooms, add photos, create designs
+   - Optionally set an **expiration** (days until link expires)
+   - Click **"Create Link"**
+3. **Copy the generated URL** using the copy icon
+4. Share the URL with family members, contractors, or colleagues
+5. When they open the link, they'll be added to the project with the assigned role
+
+### Managing Share Links
+
+- View all active share links in the Share Dialog
+- Each link shows: role badge and creation date
+- Click **"Revoke"** to disable a share link
+
+---
+
+## Comments
+
+Discuss designs and decisions with project collaborators.
+
+### Adding Comments
+
+1. On the project detail page, scroll to the **Comments** section
+2. Type your comment in the text input
+3. Press **Enter** or click the **Send** button
+4. Your comment appears immediately with your name and timestamp
+
+### Viewing Comments
+
+- Comments show: author avatar (initials), name, timestamp, and content
+- The section header shows the total **comment count**
+- Scroll through the comment history
+
+---
+
+## Notifications
+
+Stay informed about project activity.
+
+### Notification Bell
+
+- **Red badge** on the bell icon shows unread count
+- Badge caps at **99+** for high counts
+- Count refreshes every 30 seconds automatically
+
+### Notification List
+
+1. Click the **bell icon** to open the dropdown
+2. Each notification shows:
+   - Type icon (comment, share invite, AI complete)
+   - Title
+   - Time ago (e.g., "5m ago", "2h ago", "3d ago")
+3. Click **"Mark all as read"** to clear the badge
+
+---
+
+## Camera Capture
+
+Photograph rooms directly from the app.
+
+### Using the Camera
+
+1. Navigate to the **Capture** tab (center + button)
+2. Click **"Open Camera"**
+3. Allow camera access when prompted
+4. Point at your room and click **"Capture"**
+5. Review the photo:
+   - **Retake** — try again
+   - **Use Photo** — proceed to upload (room selection coming soon)
+
+### Camera Permissions
+
+- The app requests camera access explicitly
+- If denied: a message explains how to enable it in browser settings
+- On desktop without camera: the app shows a message suggesting the upload feature on room detail pages instead
+
+> **Note:** The capture page currently lets you take photos but the upload-to-room flow is not yet connected. For now, use the **Upload Photo** button directly on room detail pages.
+
+---
+
+## Design Library
+
+Browse pre-built design templates for inspiration.
+
+### Browsing Templates
+
+1. Navigate to the **Library** tab
+2. Use the **room type tabs** to filter:
+   - All, Bathroom, Kitchen, Bedroom, Living Room, Dining Room
+3. Templates display as cards with:
+   - Thumbnail image (or grey placeholder)
+   - Template name
+   - Category chip
+
+> **Note:** The template library will be populated with seed data in a future update. The page currently fetches from the API but may show empty results until templates are added.
+
+---
+
+## Profile & Account
+
+### Viewing Your Profile
+
+1. Navigate to the **Profile** tab
+2. See your:
+   - Avatar (first letter of your name)
+   - Full name
+   - Email address
+   - Profile type badge (Homeowner, Architect, etc.)
+   - Platform role badge
+
+### Editing Your Name
+
+1. On the profile page, update the name field
+2. Click **"Save"**
+3. A green "Name updated!" confirmation appears
+
+### Logging Out
+
+1. On the profile page, click **"Log Out"**
+2. Your session is cleared and you're returned to the landing page
+
+### Deleting Your Account
+
+1. On the profile page, scroll to the **Danger Zone**
+2. Click **"Delete Account"**
+3. Read the warning: all data will be permanently deleted
+4. Click **"Delete Forever"** to confirm
+5. Your account and all associated data (projects, rooms, photos, designs) are removed
+
+---
+
+## Complete User Flows
+
+### Flow 1: First-Time Setup (5 minutes)
 
 ```
-1. Landing Page (/)
-   ↓ Click "Get Started"
-2. Register (/register)
-   ↓ Create account
-3. Login (/login)
-   ↓ Sign in
-4. Dashboard (/dashboard)
-   ↓ Click "Create New Project"
-5. New Project (/projects/new)
-   ↓ Fill form, submit
-6. Project Detail (/projects/[id])
-   ↓ Click "Add Room"
-7. Add Room (/projects/[id]/rooms/new)
-   ↓ Select type, name, submit
-8. Project Detail (room cards appear)
-   ↓ Click a room card
-9. Room Detail (/projects/[id]/rooms/[roomId])
-   ↓ Upload photos, manage gallery
+Landing Page → Register → Login → Dashboard (empty)
+  → Create Project → Add Room (Bathroom) → Add Room (Kitchen)
+  → Upload Photo to Bathroom → Upload Photo to Kitchen
 ```
 
----
+### Flow 2: Generate Your First Visualization (2 minutes)
 
-## API Explorer
+```
+Room Detail (with photo) → Select "Bathroom" category
+  → Click "Generate" → Wait for processing (QUEUED → PROCESSING → COMPLETED)
+  → See Before/After Slider → Click design card → Full comparison view
+```
 
-For developers and power users, the full API documentation is available via Swagger:
+### Flow 3: Track Your Budget (3 minutes)
 
-**http://localhost:4000/api/docs**
+```
+Room Detail → Budget section → Add Item: Civil, ₹50,000 estimated
+  → Add Item: Furnishings, ₹30,000 estimated
+  → Go to Project Detail → See Budget Summary (progress bar, category breakdown)
+```
 
-This interactive explorer lets you test all endpoints directly.
+### Flow 4: Share with Family (1 minute)
 
----
+```
+Project Detail → Click Share icon → Select "Viewer" role
+  → Click "Create Link" → Copy URL → Send to family via WhatsApp
+```
 
-## Available API Capabilities
+### Flow 5: Capture Room Photo on Mobile (2 minutes)
 
-While the UI covers the core flows, the backend supports additional features accessible via API:
-
-| Feature | API Endpoint | Status |
-|---------|-------------|--------|
-| **User profile update** | `PATCH /api/users/me` | Backend ready |
-| **Account deletion** | `DELETE /api/users/me` | Backend ready (cascading delete) |
-| **Project member management** | `POST /api/projects/:id/members` | Backend ready |
-| **Project sharing via link** | `POST /api/projects/:id/share` | Backend ready |
-| **Project locking** | `POST /api/projects/:id/lock` | Backend ready (5-min auto-release) |
-| **Room reordering** | `PATCH /api/projects/:id/rooms/reorder` | Backend ready |
-| **Budget tracking** | `GET/POST /api/rooms/:id/budget` | Backend ready |
-| **Comments** | `GET/POST /api/comments` | Backend ready (threaded replies) |
-| **Notifications** | `GET /api/notifications` | Backend ready |
-| **AI Segmentation** | `POST /api/ai/segmentation` | Backend ready (queued) |
-| **AI Visualization** | `POST /api/ai/visualization` | Backend ready (queued) |
-| **Design templates** | `GET /api/templates` | Backend ready |
-
----
-
-## Coming Soon
-
-These features are designed and backend-ready, with UI coming in future updates:
-
-- **📸 Camera Capture** — Photograph rooms directly from the app
-- **🎨 AI Visualization** — Select a renovation category (wall color, tiles, cabinets, etc.) and see an AI-generated preview of the changes
-- **🔀 Before/After Comparison** — Drag a slider to compare the original room photo with the AI visualization
-- **✏️ Design Editor** — Annotate, draw, and add text labels to your designs using the built-in Fabric.js editor
-- **📚 Design Templates** — Browse pre-built design templates for inspiration
-- **💰 Budget Tracking** — Track estimated vs. actual spending per room and category with charts
-- **🤝 Collaboration** — Share projects with family members or contractors, add comments on rooms and designs
-- **🔔 Notifications** — Get notified when collaborators comment or when AI processing completes
-- **📄 Export** — Download before/after images and project summaries as PDF
-- **👤 Profile Management** — Update your name, avatar, and account settings
+```
+Capture tab → Open Camera → Point at room → Capture
+  → Review → Retake or Use Photo
+```
 
 ---
 
 ## Technical Notes
 
-- **Supported image formats:** JPEG, PNG, WebP (max 20MB per photo)
-- **Browser support:** Chrome, Edge, Firefox, Safari (optimized for Android Chrome)
-- **Data privacy:** EXIF data (GPS, camera info) is stripped from all uploaded photos
-- **Session:** Login sessions last 15 minutes, with automatic refresh for up to 7 days
-- **Offline:** Saved projects can be browsed offline (when PWA is installed)
+| Item | Detail |
+|------|--------|
+| **Supported image formats** | JPEG, PNG, WebP (max 20MB per photo) |
+| **Browser support** | Chrome, Edge, Firefox, Safari (optimized for Android Chrome) |
+| **Data privacy** | EXIF data (GPS, camera info) stripped from all uploads |
+| **Session duration** | 15-minute access tokens, auto-refresh for up to 7 days |
+| **PWA** | Installable on Android via "Add to Home Screen" |
+| **Currency** | Indian Rupee (₹) for all budget values |
+| **AI mode** | Mock (color transforms + watermark). Real AI planned. |
 
 ---
 
@@ -217,7 +438,44 @@ These features are designed and backend-ready, with UI coming in future updates:
 |-------|---------|
 | "Get Started" button doesn't work | Clear browser cache and reload |
 | Can't login after registration | Make sure password has uppercase, lowercase, and a number |
-| Photo upload fails | Check file is JPEG/PNG/WebP and under 20MB. Try a smaller image first. |
-| Projects don't appear after login | Log out and log back in to refresh the session |
+| Photo upload fails | Check file is JPEG/PNG/WebP and under 20MB. Ensure API server is running. |
+| Visualization stuck on "Queued" | Make sure the AI worker is running: `cd apps/ai-worker && npx ts-node src/main.ts` |
+| Projects don't appear after login | Your session may have expired — log out and log back in |
 | Page shows spinner forever | Check that the API server is running on port 4000 |
 | 401 Unauthorized errors | Your session expired — log in again |
+| Camera not working | Ensure browser has camera permission. HTTPS may be required on some devices. |
+| Budget not updating | Refresh the page after adding items |
+| Share link not working | Ensure the recipient creates an account first |
+
+---
+
+## Setup for Testing
+
+### Start the servers
+
+```bash
+# Terminal 1 — Database
+docker compose up postgres redis -d
+
+# Terminal 2 — API
+cd apps/api
+pnpm dev
+
+# Terminal 3 — Frontend
+cd apps/web
+pnpm dev
+
+# Terminal 4 — AI Worker (required for visualizations)
+cd apps/ai-worker
+npx ts-node --transpile-only src/main.ts
+```
+
+### Access the app
+- **Frontend:** http://localhost:3000
+- **API Health:** http://localhost:4000/api/health
+- **API Docs (Swagger):** http://localhost:4000/api/docs
+
+### Mobile Testing
+1. Find your PC's IP: `ipconfig` (look for IPv4 address)
+2. Start frontend with: `npx next dev --hostname 0.0.0.0 --port 3000`
+3. Open `http://<YOUR-PC-IP>:3000` on your phone

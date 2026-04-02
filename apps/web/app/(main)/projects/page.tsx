@@ -33,7 +33,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     apiClient
       .fetch<{ data: Project[] }>('/projects')
-      .then((res) => setProjects(res.data))
+      .then((res) => setProjects(res.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

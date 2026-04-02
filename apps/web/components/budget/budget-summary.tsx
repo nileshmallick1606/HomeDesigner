@@ -12,15 +12,17 @@ import { apiClient } from '../../lib/api-client';
 
 interface BudgetCategory {
   category: string;
-  estimatedAmount: number;
-  actualAmount: number;
+  estimated: number;
+  actual: number;
 }
 
-interface BudgetData {
+// Matches the actual backend response shape from budgets.service.ts
+interface BudgetApiResponse {
   overallBudget: number;
   totalEstimated: number;
   totalActual: number;
-  categories: BudgetCategory[];
+  byCategory: Record<string, { estimated: number; actual: number }>;
+  percentSpent: number;
 }
 
 function getProgressColor(percent: number): 'success' | 'warning' | 'error' {
@@ -30,14 +32,24 @@ function getProgressColor(percent: number): 'success' | 'warning' | 'error' {
 }
 
 export function BudgetSummary({ projectId }: { projectId: string }) {
-  const [budget, setBudget] = useState<BudgetData | null>(null);
+  const [budget, setBudget] = useState<BudgetApiResponse | null>(null);
+  const [categories, setCategories] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     apiClient
-      .fetch<BudgetData>(`/projects/${projectId}/budget`)
-      .then(setBudget)
+      .fetch<BudgetApiResponse>(`/projects/${projectId}/budget`)
+      .then((data) => {
+        setBudget(data);
+        // Transform byCategory object into array for rendering
+        const cats = Object.entries(data.byCategory || {}).map(([category, val]) => ({
+          category,
+          estimated: val.estimated,
+          actual: val.actual,
+        }));
+        setCategories(cats);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -60,10 +72,7 @@ export function BudgetSummary({ projectId }: { projectId: string }) {
 
   if (!budget) return null;
 
-  const percentSpent =
-    budget.overallBudget > 0
-      ? Math.round((budget.totalActual / budget.overallBudget) * 100)
-      : 0;
+  const percentSpent = budget.percentSpent || 0;
 
   return (
     <Box>
@@ -72,7 +81,7 @@ export function BudgetSummary({ projectId }: { projectId: string }) {
           Overall Budget
         </Typography>
         <Typography variant="body2" fontWeight={600}>
-          ₹{Number(budget.overallBudget).toLocaleString()}
+          ₹{Number(budget.overallBudget || 0).toLocaleString()}
         </Typography>
       </Box>
 
@@ -81,7 +90,7 @@ export function BudgetSummary({ projectId }: { projectId: string }) {
           Total Estimated
         </Typography>
         <Typography variant="body2">
-          ₹{Number(budget.totalEstimated).toLocaleString()}
+          ₹{Number(budget.totalEstimated || 0).toLocaleString()}
         </Typography>
       </Box>
 
@@ -90,7 +99,7 @@ export function BudgetSummary({ projectId }: { projectId: string }) {
           Total Actual
         </Typography>
         <Typography variant="body2">
-          ₹{Number(budget.totalActual).toLocaleString()}
+          ₹{Number(budget.totalActual || 0).toLocaleString()}
         </Typography>
       </Box>
 
@@ -106,17 +115,17 @@ export function BudgetSummary({ projectId }: { projectId: string }) {
         </Typography>
       </Box>
 
-      {budget.categories.length > 0 && (
+      {categories.length > 0 && (
         <>
           <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
             Category Breakdown
           </Typography>
           <List dense disablePadding>
-            {budget.categories.map((cat) => (
+            {categories.map((cat) => (
               <ListItem key={cat.category} disableGutters>
                 <ListItemText
                   primary={cat.category.replace(/_/g, ' ')}
-                  secondary={`Estimated: ₹${Number(cat.estimatedAmount).toLocaleString()} · Actual: ₹${Number(cat.actualAmount).toLocaleString()}`}
+                  secondary={`Estimated: ₹${Number(cat.estimated).toLocaleString()} · Actual: ₹${Number(cat.actual).toLocaleString()}`}
                 />
               </ListItem>
             ))}

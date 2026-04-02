@@ -35,8 +35,8 @@ export function CommentsPanel({ projectId, roomId }: CommentsPanelProps) {
     try {
       const params = new URLSearchParams({ projectId });
       if (roomId) params.set('roomId', roomId);
-      const data = await apiClient.fetch<Comment[]>(`/comments?${params.toString()}`);
-      setComments(data);
+      const res = await apiClient.fetch<{ data: Comment[] }>(`/comments?${params.toString()}`);
+      setComments(res.data || []);
     } catch {
       // ignore fetch errors
     }

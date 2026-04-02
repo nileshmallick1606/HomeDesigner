@@ -32,12 +32,8 @@ interface BudgetItem {
   actualAmount: number;
 }
 
-interface RoomBudget {
-  items: BudgetItem[];
-}
-
 export function BudgetEditor({ roomId }: { roomId: string }) {
-  const [budget, setBudget] = useState<RoomBudget | null>(null);
+  const [items, setItems] = useState<BudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -50,8 +46,8 @@ export function BudgetEditor({ roomId }: { roomId: string }) {
   const fetchBudget = useCallback(() => {
     setLoading(true);
     apiClient
-      .fetch<RoomBudget>(`/rooms/${roomId}/budget`)
-      .then(setBudget)
+      .fetch<BudgetItem[]>(`/rooms/${roomId}/budget`)
+      .then((data) => setItems(Array.isArray(data) ? data : []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [roomId]);
@@ -105,9 +101,9 @@ export function BudgetEditor({ roomId }: { roomId: string }) {
       )}
 
       {/* Existing items */}
-      {budget && budget.items.length > 0 && (
+      {items.length > 0 && (
         <List dense disablePadding sx={{ mb: 2 }}>
-          {budget.items.map((item) => (
+          {items.map((item) => (
             <ListItem
               key={item.id}
               disableGutters
@@ -126,7 +122,7 @@ export function BudgetEditor({ roomId }: { roomId: string }) {
         </List>
       )}
 
-      {budget && budget.items.length === 0 && (
+      {items.length === 0 && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           No budget items yet.
         </Typography>

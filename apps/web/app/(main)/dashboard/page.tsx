@@ -31,7 +31,7 @@ export default function DashboardPage() {
   useEffect(() => {
     apiClient
       .fetch<{ data: Project[] }>('/projects?limit=6')
-      .then((res) => setProjects(res.data))
+      .then((res) => setProjects(res.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

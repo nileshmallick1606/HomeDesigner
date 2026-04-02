@@ -64,8 +64,8 @@ export function NotificationBell() {
   const handleOpen = async (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
     try {
-      const data = await apiClient.fetch<Notification[]>('/notifications');
-      setNotifications(data);
+      const res = await apiClient.fetch<{ data: Notification[] }>('/notifications');
+      setNotifications(res.data || []);
     } catch {
       // ignore
     }
