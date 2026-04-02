@@ -107,16 +107,52 @@ async function decodePoint(
   if (!masks || !scores) return null;
 
   const sd = scores.data as Float32Array;
-  const best = sd.indexOf(Math.max(...sd));
-  if (sd[best] < IOU_THRESHOLD) return null;
+  // Xenova SAM output shape: [1, num_point_groups, num_masks, H, W]
+  // iou_scores shape: [1, num_point_groups, num_masks]
+  const numMasks = masks.dims[2] as number; // 3 masks per point
+  const h = masks.dims[3] as number;        // 256
+  const w = masks.dims[4] as number;        // 256
+  const maskSize = h * w;
+  const allMasks = masks.data as Float32Array;
+  logger.log(`  Masks shape: ${masks.dims.join('×')}, scores: ${Array.from(sd).map(s => Number(s).toFixed(3)).join(', ')}`);
 
-  const h = masks.dims[2] as number;
-  const w = masks.dims[3] as number;
-  const slice = new Float32Array(h * w);
-  const off = best * h * w;
-  for (let i = 0; i < h * w; i++) slice[i] = (masks.data as Float32Array)[off + i];
+  // SAM returns 3 masks per point at different granularities.
+  // Pick the SMALLEST confident mask (most specific segment), not the largest.
+  // This avoids "entire image" masks that cover everything.
+  let bestIdx = -1;
+  let bestArea = Infinity;
 
-  return { mask: slice, score: sd[best], h, w };
+  for (let mi = 0; mi < numMasks; mi++) {
+    if (sd[mi] < IOU_THRESHOLD) continue;
+
+    // Count foreground pixels in this mask
+    let area = 0;
+    const offset = mi * maskSize;
+    for (let i = 0; i < maskSize; i++) {
+      if (allMasks[offset + i] > MASK_THRESHOLD) area++;
+    }
+
+    // Skip masks covering >60% of the image (too large = "everything")
+    const coverage = area / maskSize;
+    if (coverage > 0.6) continue;
+
+    // Skip masks covering <0.5% (too small = noise)
+    if (coverage < 0.005) continue;
+
+    // Pick smallest remaining confident mask
+    if (area < bestArea) {
+      bestArea = area;
+      bestIdx = mi;
+    }
+  }
+
+  if (bestIdx < 0) return null;
+
+  const slice = new Float32Array(maskSize);
+  const off = bestIdx * maskSize;
+  for (let i = 0; i < maskSize; i++) slice[i] = allMasks[off + i];
+
+  return { mask: slice, score: sd[bestIdx], h, w };
 }
 
 // ─── Non-Maximum Suppression ────────────────────────────────────
