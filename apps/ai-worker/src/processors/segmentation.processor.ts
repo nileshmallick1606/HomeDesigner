@@ -2,6 +2,8 @@ import { Job } from 'bullmq';
 import { prisma } from '../lib/prisma';
 import * as storage from '../lib/storage';
 import { mockSegmentation } from '../models/mock-ai';
+import { runSegmentation } from '../models/sam';
+import { isModelDownloaded } from '../models/model-manager';
 import { v4 as uuidv4 } from 'uuid';
 
 const logger = {
@@ -26,29 +28,56 @@ export async function processSegmentation(job: Job) {
     });
 
     const photoBuffer = await storage.download(photo.originalUrl);
-    logger.log(`Downloaded photo: ${photo.originalUrl} (${photoBuffer.length} bytes)`);
+    logger.log(`Downloaded photo: ${photoBuffer.length} bytes`);
 
-    // Run mock segmentation
-    const maskBuffer = await mockSegmentation(photoBuffer);
-    logger.log(`Generated mask: ${maskBuffer.length} bytes`);
+    // Try real SAM segmentation, fall back to mock (AI-DC-3)
+    let maskBuffer: Buffer;
+    let elements: unknown;
+    let modelVersion: string;
+
+    const samAvailable = await isModelDownloaded('sam-vit-b');
+
+    if (samAvailable || process.env.ENABLE_REAL_AI === 'true') {
+      try {
+        logger.log('Attempting real SAM segmentation...');
+        const result = await runSegmentation(photoBuffer);
+        maskBuffer = result.maskBuffer;
+        elements = result.elements;
+        modelVersion = result.modelVersion;
+        logger.log(`SAM segmentation successful: ${result.elements.length} elements`);
+      } catch (samError) {
+        logger.error(`SAM failed, falling back to mock: ${samError}`);
+        maskBuffer = await mockSegmentation(photoBuffer);
+        elements = {
+          labels: ['wall', 'floor', 'ceiling', 'window', 'door'],
+          note: 'Mock segmentation (SAM fallback)',
+        };
+        modelVersion = 'mock-v1';
+      }
+    } else {
+      logger.log('SAM model not available, using mock segmentation');
+      maskBuffer = await mockSegmentation(photoBuffer);
+      elements = {
+        labels: ['wall', 'floor', 'ceiling', 'window', 'door'],
+        note: 'Mock segmentation — set ENABLE_REAL_AI=true to use SAM',
+      };
+      modelVersion = 'mock-v1';
+    }
 
     // Upload mask
     const segId = uuidv4();
     const maskKey = `${userId}/segmentation/${segId}/mask.png`;
-    const maskUrl = await storage.upload(maskKey, maskBuffer);
+    await storage.upload(maskKey, maskBuffer);
 
-    // Create Segmentation record
+    // Create Segmentation record (AI-DC-4: model version tracking)
     await prisma.segmentation.create({
       data: {
         id: segId,
         roomPhotoId,
-        maskUrl,
-        modelVersion: 'mock-v1',
+        maskUrl: storage.getPublicUrl(maskKey),
+        modelVersion,
         status: 'COMPLETED',
-        elements: {
-          labels: ['wall', 'floor', 'ceiling', 'window', 'door'],
-          note: 'Mock segmentation — edge detection only',
-        },
+        elements: elements as any,
       },
     });
 
@@ -58,7 +87,7 @@ export async function processSegmentation(job: Job) {
       data: { status: 'COMPLETED', completedAt: new Date() },
     });
 
-    logger.log(`Job ${jobId} completed successfully`);
+    logger.log(`Job ${jobId} completed (model: ${modelVersion})`);
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Unknown error';
     logger.error(`Job ${jobId} failed: ${errMsg}`);
@@ -73,6 +102,6 @@ export async function processSegmentation(job: Job) {
       },
     });
 
-    throw error; // BullMQ will retry based on job config
+    throw error;
   }
 }
