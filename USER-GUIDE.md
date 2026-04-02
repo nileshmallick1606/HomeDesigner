@@ -1,8 +1,8 @@
-# InteriorScience — User Guide
+# InteriorScience — User Guide (v3)
 
 > **See your renovated space before a single wall is touched.**
 
-InteriorScience is an AI-powered platform that helps homeowners and architects visualize, plan, and manage home interior renovations. Upload photos of your rooms, select a design category, and see AI-generated before/after previews — all from your phone or desktop browser.
+InteriorScience is an AI-powered platform that helps homeowners and architects visualize, plan, and manage home interior renovations. Upload photos of your rooms, select a design category, see AI-generated before/after previews, annotate designs with the built-in editor, track budgets, and collaborate with family or contractors — all from your phone or desktop.
 
 ---
 
@@ -16,17 +16,19 @@ InteriorScience is an AI-powered platform that helps homeowners and architects v
 6. [AI Visualization](#6-ai-visualization)
 7. [Before/After Comparison](#7-beforeafter-comparison)
 8. [Design Management](#8-design-management)
-9. [Budget Tracking](#9-budget-tracking)
-10. [Sharing & Collaboration](#10-sharing--collaboration)
-11. [Comments](#11-comments)
-12. [Notifications](#12-notifications)
-13. [Camera Capture](#13-camera-capture)
-14. [Design Library](#14-design-library)
-15. [Profile & Account](#15-profile--account)
-16. [Complete User Flows](#16-complete-user-flows)
-17. [Phase Summary](#17-phase-summary)
-18. [Setup for Testing](#18-setup-for-testing)
-19. [Troubleshooting](#19-troubleshooting)
+9. [Design Editor (Fabric.js)](#9-design-editor)
+10. [Design Library & Templates](#10-design-library--templates)
+11. [Budget Tracking](#11-budget-tracking)
+12. [Sharing & Collaboration](#12-sharing--collaboration)
+13. [Comments](#13-comments)
+14. [Notifications](#14-notifications)
+15. [Camera Capture](#15-camera-capture)
+16. [Export](#16-export)
+17. [Profile & Account](#17-profile--account)
+18. [Complete User Flows](#18-complete-user-flows)
+19. [Phase Summary](#19-phase-summary)
+20. [Setup for Testing](#20-setup-for-testing)
+21. [Troubleshooting](#21-troubleshooting)
 
 ---
 
@@ -35,70 +37,65 @@ InteriorScience is an AI-powered platform that helps homeowners and architects v
 ### Create Your Account
 
 1. Open the app (e.g., `http://localhost:3000`)
-2. Click **"Get Started"** on the landing page
-3. Fill in your details:
-   - **Full Name** — your display name
-   - **Email** — used for login
-   - **Password** — minimum 8 characters with uppercase, lowercase, and a number
-   - **Profile Type**:
-     - **Homeowner** — planning your own renovation
-     - **Architect (Individual)** — freelance designer
-     - **Architecture Organization** — design firm
-4. Click **"Create Account"** → redirects to sign-in page
+2. Click **"Get Started"**
+3. Fill in: Full Name, Email, Password (min 8 chars, uppercase + lowercase + number), Profile Type (Homeowner / Architect / Organization)
+4. Click **"Create Account"** → redirected to sign-in
 
 ### Sign In
 
-1. Enter your email and password
-2. Click **"Sign In"**
-3. You land on your **Dashboard**
+Enter email + password → **"Sign In"** → Dashboard
 
-> Already signed in? The landing page auto-redirects to your dashboard.
+> Already signed in? Landing page auto-redirects to dashboard.
 
 ---
 
 ## 2. Navigation
 
-### Bottom Tab Bar (5 tabs — every screen)
+### Bottom Tab Bar (5 tabs)
 
-| Tab | Destination | What You See |
-|-----|-------------|-------------|
-| **Home** | `/dashboard` | Recent projects overview |
-| **Projects** | `/projects` | Full project list + create button |
-| **Capture** | `/capture` | Camera to photograph rooms |
-| **Library** | `/library` | Design templates for inspiration |
-| **Profile** | `/profile` | Account settings, logout |
+| Tab | Where | What |
+|-----|-------|------|
+| Home | `/dashboard` | Recent projects overview |
+| Projects | `/projects` | All projects + create |
+| Capture | `/capture` | Camera to photograph rooms |
+| Library | `/library` | Design templates + apply to room |
+| Profile | `/profile` | Account, logout, delete |
 
 ### Notification Bell (top-right)
 
-Red badge shows unread count (max "99+"). Click to see recent notifications and mark them as read.
+Red badge shows unread count (max "99+"). Click for recent notifications.
 
 ### Route Protection
 
-All app pages require authentication. Unauthenticated users are automatically redirected to the login page.
+All app pages require authentication. Unauthenticated → redirected to login.
+
+### Design System (Phase 3)
+
+- **Inter font** loaded via next/font (zero flash of unstyled text)
+- **Consistent AppHeader** on all pages with breadcrumbs + notification bell
+- **Skeleton loading cards** while data loads (instead of spinners)
+- **Status chip colors**: Draft=grey, Active=green, Completed=blue, Archived=amber
+- **Card hover effects**: subtle lift animation on hover
+- **Responsive photo gallery**: 2 cols mobile, 3 tablet, 4 desktop
 
 ---
 
 ## 3. Projects
 
-A **project** represents a single renovation (e.g., "Flat 302 Renovation").
-
 ### Creating a Project
 
-1. Click **"Create New Project"** (Dashboard or Projects tab, or the floating **+** button)
-2. Fill in:
-   - **Project Name** (required)
-   - **Description** (optional)
-   - **Overall Budget** in ₹ (optional)
-3. Click **"Create Project"**
+1. Click **"Create New Project"** (or floating **+** button)
+2. Enter: Project Name (required), Description (optional), Budget in ₹ (optional)
+3. Click **"Create Project"** → project detail page
 
 ### Project Detail Page
 
 | Section | What It Shows |
 |---------|--------------|
-| **Header** | Name, status badge, budget, share button |
-| **Rooms** | Grid of room cards with type icons |
-| **Budget Summary** | Progress bar + category breakdown |
-| **Comments** | Threaded discussion with collaborators |
+| Header | Name, status (color-coded), budget, share button |
+| Rooms | Grid of room cards with type icons |
+| Budget Summary | Progress bar + category breakdown |
+| Comments | Threaded discussion |
 
 ---
 
@@ -106,45 +103,30 @@ A **project** represents a single renovation (e.g., "Flat 302 Renovation").
 
 ### Adding a Room
 
-1. Open a project → click **"Add Room"**
-2. Select a **room type** from 8 options:
+1. Project detail → **"Add Room"**
+2. Select room type: Bathroom, Kitchen, Bedroom, Living Room, Dining Room, Balcony, Utility, Custom
+3. Name auto-fills → **"Add Room"**
 
-| Type | Icon |
-|------|------|
-| Bathroom | 🛁 |
-| Kitchen | 🍳 |
-| Bedroom | 🛏️ |
-| Living Room | 🛋️ |
-| Dining Room | 🍽️ |
-| Balcony | 🌿 |
-| Utility | 🔧 |
-| Custom | 📐 |
-
-3. Room name auto-fills (customize if needed)
-4. Click **"Add Room"**
-
-### Room Detail Page — The Core Screen
-
-The room detail page is the **most feature-rich screen** in the app:
+### Room Detail Page (Core Screen)
 
 ```
-┌─────────────────────────────────┐
-│  Room Name          [Type Badge]│
-├─────────────────────────────────┤
-│  PHOTOS                         │
-│  [Photo Grid] [Upload Button]   │
-├─────────────────────────────────┤
-│  START DESIGN (if photos exist) │
-│  [Category Selector Grid]       │
-│  [Generate Button]              │
-│  [Job Status / Before-After]    │
-├─────────────────────────────────┤
-│  DESIGNS                        │
-│  [Design Card Grid]             │
-├─────────────────────────────────┤
-│  BUDGET                         │
-│  [Budget Editor]                │
-└─────────────────────────────────┘
+┌──────────────────────────────────────┐
+│  Room Name                [Type]     │
+├──────────────────────────────────────┤
+│  PHOTOS                              │
+│  [Responsive Gallery] [Upload Btn]   │
+├──────────────────────────────────────┤
+│  START DESIGN (when photos exist)    │
+│  [6 Category Cards]                  │
+│  [Generate Button]                   │
+│  [Job Status / Before-After Slider]  │
+├──────────────────────────────────────┤
+│  DESIGNS                             │
+│  [Design Card Grid → click for detail]│
+├──────────────────────────────────────┤
+│  BUDGET                              │
+│  [Category Budget Editor]            │
+└──────────────────────────────────────┘
 ```
 
 ---
@@ -153,64 +135,47 @@ The room detail page is the **most feature-rich screen** in the app:
 
 ### Uploading
 
-1. Open a room → click **"Upload Photo"**
-2. Select an image (JPEG, PNG, or WebP — max 20MB)
-3. Progress bar shows during upload
-4. Photo appears in the gallery immediately
+Click **"Upload Photo"** → select JPEG/PNG/WebP (max 20MB) → progress bar → appears in gallery
 
-**Behind the scenes:**
-- Magic byte validation (security)
-- EXIF data stripped (GPS, camera info removed for privacy)
-- Compressed to WebP format
-- 3 thumbnail sizes generated (300px, 600px, 1200px)
+**Behind the scenes:** Magic byte validation, EXIF stripping (privacy), WebP compression, 3 thumbnail sizes
 
 ### Deleting
 
-1. Click the **🗑️ trash icon** on any photo (top-right corner)
-2. Confirmation dialog shows a preview
-3. Click **"Delete"** to confirm
+Click **🗑️ trash icon** on photo → confirmation dialog → **"Delete"**
 
 ---
 
 ## 6. AI Visualization
 
-The **core feature** — see what your room could look like with different renovation changes.
-
 ### Step-by-Step
 
-1. **Upload at least one photo** to a room
-2. The **"Start Design"** section appears below your photos
-3. **Select a category** from the 6 options:
+1. Upload at least one photo to a room
+2. **"Start Design"** section appears
+3. Select a category:
 
-| Category | What It Simulates | Visual Effect |
-|----------|-------------------|---------------|
-| **Civil** | Wall paint, plaster | Blue tint |
-| **Furnishings** | New furniture, decor | Warm brightness |
-| **Bathroom** | New tiles, fixtures | Cyan tone |
-| **Kitchen** | Cabinets, countertops | Green tint |
-| **Electrical** | New lighting | Warm temperature |
-| **Other** | General changes | Sepia tone |
+| Category | Simulates | Visual Effect |
+|----------|-----------|---------------|
+| Civil | Wall paint | Softer blue tint |
+| Furnishings | New furniture | Warm brightness + saturation |
+| Bathroom | New tiles | Cyan with saturation boost |
+| Kitchen | Cabinets | Natural green + brightness |
+| Electrical | New lighting | Warm golden glow |
+| Other | General | Enhanced sepia |
 
 4. Click **"Generate [Category] Visualization"**
-5. Watch the live progress:
-   - **Queued** — waiting in processing queue
-   - **Processing** — AI generating the image (up to 60 seconds)
-   - **Complete!** — result ready
-   - **Failed** — retry available
-6. The **Before/After Slider** appears with your original photo vs. the AI-generated result
+5. Watch progress: Queued → Processing → Complete! (or Failed with retry)
+6. **Before/After Slider** appears
 
-> **Note:** Current visualizations use mock AI (color/style transforms with "AI Preview (Mock)" watermark). Real Stable Diffusion + ControlNet integration is planned.
+> Visualizations use improved mock AI with subtle "AI Preview" watermark. Real Stable Diffusion + ControlNet planned for future.
 
 ---
 
 ## 7. Before/After Comparison
 
-The interactive comparison slider lets you evaluate design changes:
-
-- **Drag** the handle left/right to reveal before or after
+- **Drag** the slider handle left/right
 - **Arrow keys** (← →) for fine control
-- **Labels** show "Before" and "After"
-- Available on room detail page (300px) and design detail page (400px full-width)
+- **Labels**: "Before" / "After"
+- Room detail (300px) and design detail (400px full-width)
 
 ---
 
@@ -218,292 +183,297 @@ The interactive comparison slider lets you evaluate design changes:
 
 ### Viewing Designs
 
-All generated designs appear as **cards** in the room detail page showing:
-- Thumbnail of the generated image
-- Category label
-- Status badge
-
-Click any card → **Design Detail Page** with:
+Design cards in room detail show: thumbnail, category, status badge. Click → **Design Detail Page**:
 - Full-width before/after slider
-- Design metadata (category, model version, date)
-
-### Regenerating a Design
-
-1. Open a design detail page
-2. Click **"Regenerate"**
-3. A new visualization job queues
-4. Live progress shows (Queued → Processing → Complete)
-5. The before/after slider updates with the new result
-
-### Deleting a Design
-
-1. Open a design detail page
-2. Click **"Delete"**
-3. Confirmation dialog warns this is permanent
-4. Click **"Delete"** → design and all visualizations removed
-5. Redirects back to room page
+- Metadata: category, model version, date
+- **"Edit / Annotate"** → opens Fabric.js editor
+- **"Regenerate"** → queues new visualization, shows live progress
+- **"Delete"** → confirmation dialog → removes design
 
 ---
 
-## 9. Budget Tracking
+## 9. Design Editor
 
-### Project Budget Summary (Project Detail Page)
+### Fabric.js Canvas Editor (Phase 3 — New!)
 
-Shows aggregated budget across all rooms:
-- **Overall budget** (set during project creation)
-- **Total estimated** vs **Total actual** costs
-- **Color-coded progress bar:**
-  - 🟢 Green — under 70% spent
-  - 🟡 Yellow — 70–90% spent
-  - 🔴 Red — over 90% spent
-- **Category breakdown** list
+Access: Design detail → **"Edit / Annotate"**
 
-### Room Budget Editor (Room Detail Page)
-
-1. Scroll to the **Budget** section
-2. **Add a budget item:**
-   - Select category (Civil, Furnishings, Bathroom, Kitchen, Electrical, Other)
-   - Enter estimated amount (₹)
-   - Enter actual amount (₹)
-   - Click **"Add Item"**
-3. **Delete** — click the trash icon next to any item
-4. Room budgets automatically roll up to the project summary
-
----
-
-## 10. Sharing & Collaboration
-
-### Sharing a Project
-
-1. On the project detail page, click the **Share icon** (top-right)
-2. In the Share Dialog:
-   - Select **role** for the recipient:
-     - **Viewer** — see everything, can't edit
-     - **Editor** — full edit access
-   - Set optional **expiration** (days)
-   - Click **"Create Link"**
-3. **Copy the URL** → share via WhatsApp, email, etc.
-
-### Managing Share Links
-
-- View all active links in the Share Dialog
-- Each shows: role badge, creation date
-- Click **"Revoke"** to disable a link
-
----
-
-## 11. Comments
-
-### Adding Comments
-
-1. On the project detail page, scroll to **Comments**
-2. Type your comment in the text input
-3. Press **Enter** or click the **Send** button
-4. Comment appears immediately with your name and timestamp
+| Tool | What It Does |
+|------|-------------|
+| **Select** | Click to select/move objects |
+| **Draw** | Freehand drawing with color + brush size |
+| **Text** | Click to place editable text label |
+| **Rectangle** | Place rectangle outline |
+| **Circle** | Place circle outline |
+| **Eraser** | Delete selected object |
 
 ### Features
 
-- Author avatar (initials), name, timestamp, content
-- Comment count in section header
-- Scrollable history
+- **Color picker**: 7 preset colors (black, red, blue, green, orange, purple, white)
+- **Brush size slider**: 1-20px
+- **Undo/Redo**: 50-state history
+- **Auto-save**: Every 30 seconds + on blur (no work lost)
+- **Resume editing**: Canvas state persists — close and reopen, everything is exactly as you left it
+- **Export PNG**: Download annotated design as image
+- **Responsive**: Tool panel at bottom on mobile, left sidebar on desktop
 
 ---
 
-## 12. Notifications
+## 10. Design Library & Templates
 
-### Bell Icon (top-right of every page)
+### Browsing Templates (Phase 3 — Enhanced!)
 
-- **Red badge** shows unread count
-- Refreshes every 30 seconds
-- Caps at **99+**
+1. Navigate to **Library** tab
+2. Filter by room type tabs: All, Bathroom, Kitchen, Bedroom, Living Room, Dining Room, Balcony
+3. Templates show as cards with:
+   - **Category-colored background** (brown=Civil, blue=Bathroom, green=Kitchen, etc.)
+   - **Room type icon** (bathtub, kitchen, bed, etc.)
+   - Category label + room type chip
 
-### Notification Dropdown
+### Applying a Template to a Room (New!)
 
-1. Click the bell icon
-2. See recent notifications:
-   - Type icon (comment, share, AI complete)
-   - Title
-   - Time ago (e.g., "5m ago")
-3. Click **"Mark all as read"**
+1. Click a template card → detail dialog opens
+2. See: name, description, room type, category, tags
+3. Under **"Apply to Room"**:
+   - Select a **project** from dropdown
+   - Select a **room** from dropdown (rooms without photos are grayed out)
+4. Click **"Apply Template"**
+5. System creates a design with the template's category
+6. AI visualization queues on the room's photo
+7. You're redirected to the room detail page to see it processing
 
----
-
-## 13. Camera Capture
-
-### Using the Camera
-
-1. Navigate to the **Capture** tab (center + button)
-2. Click **"Open Camera"**
-3. Allow camera permission when prompted
-4. Point at your room → click **"Capture"**
-5. Review the photo:
-   - **Retake** — try again
-   - **Use Photo** — ready for upload
-
-### Permission Handling
-
-- Denied? Clear message explaining how to enable in browser settings
-- Desktop without camera? Info message suggesting the room detail upload instead
-
-> **Note:** Camera capture works for taking photos. Upload-to-room integration coming in a future update. For now, use the Upload Photo button on room detail pages.
+> Templates copy their canvasState to the new design, so any pre-configured annotations from the template are preserved.
 
 ---
 
-## 14. Design Library
+## 11. Budget Tracking
 
-Browse pre-built design templates for inspiration.
+### Project Budget Summary
 
-1. Navigate to the **Library** tab
-2. Use **room type tabs** to filter: All, Bathroom, Kitchen, Bedroom, Living Room, Dining Room
-3. Templates display as cards with thumbnail, name, category chip
+On project detail page:
+- Overall budget, total estimated vs actual
+- **Color-coded progress bar**: green (<70%), yellow (70-90%), red (>90%)
+- Category breakdown list
 
-> **Note:** Template data will be populated in a future update.
+### Room Budget Editor
+
+On room detail page:
+1. Select category (Civil, Furnishings, Bathroom, Kitchen, Electrical, Other)
+2. Enter estimated amount (₹) + actual amount (₹)
+3. **"Add Item"** → appears in list
+4. Delete items with trash icon
+
+Room budgets roll up to project summary automatically.
 
 ---
 
-## 15. Profile & Account
+## 12. Sharing & Collaboration
 
-### Viewing Profile
+### Share a Project
 
-Navigate to the **Profile** tab to see:
-- Avatar (first letter of name)
-- Full name, email
-- Profile type badge (Homeowner, Architect, etc.)
-- Platform role badge
+1. Project detail → **"Share"** button
+2. Select role: **Viewer** or **Editor**
+3. Set optional expiration (days)
+4. **"Create Link"** → copy URL
+5. Share via WhatsApp, email, etc.
+
+### Manage Links
+
+View active links with role badges. **"Revoke"** to disable.
+
+---
+
+## 13. Comments
+
+Project detail → **Comments** section:
+- View existing comments (author, timestamp, content)
+- Type + **Enter** or click Send
+- Comment count in header
+
+---
+
+## 14. Notifications
+
+- **Bell icon** with red unread badge (top-right)
+- Click → dropdown with recent notifications (type icon, title, time ago)
+- **"Mark all as read"**
+- Auto-refreshes every 30 seconds
+
+---
+
+## 15. Camera Capture
+
+1. **Capture** tab → **"Open Camera"**
+2. Allow permission → viewfinder shows
+3. **"Capture"** → preview → **"Retake"** or **"Use Photo"**
+
+> Camera works for taking photos. Direct upload-to-room integration coming soon. Use the Upload Photo button on room detail pages for now.
+
+---
+
+## 16. Export (Phase 3 — New!)
+
+### Download Design Image
+
+Backend endpoint: `GET /api/export/design/:id/image?format=jpeg|png`
+
+### Download Before/After Comparison
+
+Backend endpoint: `GET /api/export/design/:id/comparison`
+- Creates side-by-side composite image (original + visualization)
+
+### Export from Editor
+
+In the Fabric.js editor, click **"PNG"** in the toolbar to download the annotated canvas.
+
+> Frontend export buttons on pages coming in next update. API endpoints are functional now via Swagger at `/api/docs`.
+
+---
+
+## 17. Profile & Account
+
+### View Profile
+
+Profile tab: avatar, name, email, profile type badge, role badge
 
 ### Edit Name
 
-1. Update the name field
-2. Click **"Save"**
-3. Green confirmation: "Name updated!"
+Update name → **"Save"** → green confirmation
 
 ### Logout
 
-Click **"Log Out"** → session cleared → landing page
+**"Log Out"** → session cleared → landing page
 
 ### Delete Account
 
-1. Scroll to **Danger Zone**
-2. Click **"Delete Account"**
-3. Read warning: all data permanently deleted
-4. Click **"Delete Forever"** to confirm
-5. Account + all projects/rooms/photos/designs removed
+Danger Zone → **"Delete Account"** → confirm → all data permanently removed
 
 ---
 
-## 16. Complete User Flows
+## 18. Complete User Flows
 
-### Flow 1: First-Time Setup → First Visualization (10 minutes)
+### Flow 1: First-Time → First Visualization (10 min)
 
 ```
 Landing → Register → Login → Dashboard
-  → Create Project ("My Home Renovation", ₹500,000)
+  → Create Project "My Home Renovation" (₹500,000)
   → Add Room (Bathroom)
-  → Upload Photo of bathroom
-  → Select "Bathroom" category
-  → Click "Generate Bathroom Visualization"
+  → Upload bathroom photo
+  → Select "Bathroom" category → "Generate"
   → Wait (Queued → Processing → Complete)
   → See Before/After Slider!
-  → Click design card → Full-screen comparison
 ```
 
-### Flow 2: Multiple Room Designs (5 minutes)
+### Flow 2: Apply Template (3 min)
 
 ```
-Project Detail → Add Room (Kitchen)
-  → Upload Kitchen photo
-  → Generate "Kitchen" visualization → Before/After
-  → Go back → Add Room (Bedroom)
-  → Upload → Generate "Furnishings" → Compare
+Library tab → Browse templates → Click "Modern Minimalist Bathroom"
+  → Select project → Select room (must have photo)
+  → "Apply Template"
+  → Redirected to room → Visualization generating!
 ```
 
-### Flow 3: Budget Planning (3 minutes)
+### Flow 3: Annotate a Design (5 min)
 
 ```
-Room Detail → Budget section
+Room detail → Click a design card → Design detail
+  → "Edit / Annotate" → Fabric.js editor opens
+  → Draw arrows pointing to walls → Add text "Paint this blue"
+  → Add rectangle around window area
+  → Auto-saves every 30s → Click "PNG" to download
+  → Close → Canvas state preserved for next time
+```
+
+### Flow 4: Budget Planning (3 min)
+
+```
+Room detail → Budget section
   → Add: Civil, ₹50,000 estimated, ₹20,000 actual
   → Add: Furnishings, ₹30,000 estimated, ₹0 actual
-  → Go to Project Detail → See Budget Summary
-  → Progress bar shows 25% spent (green)
+  → Project detail → See Budget Summary (25% spent, green bar)
 ```
 
-### Flow 4: Share with Family (1 minute)
+### Flow 5: Share with Family (1 min)
 
 ```
-Project Detail → Share icon → Select "Viewer"
-  → Create Link → Copy URL
-  → Send to family via WhatsApp
+Project detail → "Share" → Select "Viewer" → "Create Link"
+  → Copy URL → Send via WhatsApp
 ```
 
-### Flow 5: Iterate on Designs (2 minutes)
+### Flow 6: Iterate on Designs (2 min)
 
 ```
-Design Detail → Click "Regenerate" → New visualization queued
-  → Wait for completion → Compare new vs original
-  → Not satisfied? Regenerate again
+Design detail → "Regenerate" → New visualization queued
+  → Wait → Compare new vs original
   → Delete old designs you don't want
 ```
 
-### Flow 6: Mobile Camera Capture (2 minutes)
+### Flow 7: Mobile Camera Capture (2 min)
 
 ```
 Capture tab → Open Camera → Point at room → Capture
-  → Review photo → Retake or keep
+  → Review → Retake or keep
 ```
 
 ---
 
-## 17. Phase Summary
+## 19. Phase Summary
 
-### Phase 1 — Foundation (SPEC-001 to SPEC-009)
-
-| Feature | Status |
-|---------|--------|
-| Monorepo scaffolding (Next.js + NestJS + Docker) | ✅ Complete |
-| Database schema (18 entities via Prisma) | ✅ Complete |
-| User registration & JWT authentication | ✅ Complete |
-| Project CRUD with member management | ✅ Complete |
-| Room CRUD with 8 room types | ✅ Complete |
-| Photo upload pipeline (validation, EXIF strip, WebP, thumbnails) | ✅ Complete |
-| AI job queue infrastructure (BullMQ + Redis) | ✅ Complete |
-| Before/After slider component | ✅ Complete |
-| Category selector component | ✅ Complete |
-| Backend APIs: Templates, Budgets, Sharing, Comments, Notifications | ✅ Complete |
-| Docker Compose (PostgreSQL, Redis, Nginx) | ✅ Complete |
-| GitHub Actions CI pipeline | ✅ Complete |
-
-### Phase 2 — UI Completion + AI Worker (SPEC-010 to SPEC-016)
+### Phase 1 — Foundation (9 specs)
 
 | Feature | Status |
 |---------|--------|
-| Auth context + route protection | ✅ Complete |
-| Profile page (view/edit/logout/delete) | ✅ Complete |
-| AI Worker mock pipeline (segmentation + visualization) | ✅ Complete |
-| Visualization request UI (category → generate → before/after) | ✅ Complete |
-| Design detail page (full comparison, regenerate, delete) | ✅ Complete |
-| Budget summary + editor UI | ✅ Complete |
-| Templates library page (fetches from API, room type tabs) | ✅ Complete |
-| Share dialog (create links, roles, copy URL, revoke) | ✅ Complete |
-| Comments panel (create, display, threaded) | ✅ Complete |
-| Notification bell + dropdown (unread badge, mark read) | ✅ Complete |
-| Camera capture page (getUserMedia, viewfinder, capture) | ✅ Complete |
-| Fabric.js editor page (scaffold/route created) | 🔸 Scaffold only |
+| Monorepo (Next.js + NestJS + Docker) | ✅ |
+| Database (18 entities via Prisma) | ✅ |
+| Authentication (JWT + route protection) | ✅ |
+| Project & Room CRUD | ✅ |
+| Photo pipeline (upload, EXIF strip, WebP, thumbnails) | ✅ |
+| AI job queue (BullMQ + Redis) | ✅ |
+| Before/After slider | ✅ |
+| Backend APIs (all 13 modules) | ✅ |
+| Docker Compose + GitHub Actions CI | ✅ |
 
-### Remaining Items
+### Phase 2 — UI Completion (7 specs)
 
 | Feature | Status |
 |---------|--------|
-| Export backend (PDF, image download) | ❌ Not yet |
-| Full Fabric.js canvas editor (drawing tools, auto-save) | ❌ Not yet |
-| Template seed data in database | ❌ Not yet |
-| WebSocket real-time updates (using polling currently) | ❌ Not yet |
-| Real AI model integration (SAM, Stable Diffusion) | ❌ Not yet |
-| Google OAuth login | ❌ Not yet |
-| Email sending (verification, notifications) | ❌ Not yet |
+| Auth context + profile page | ✅ |
+| AI Worker mock pipeline (segmentation + visualization) | ✅ |
+| Visualization request UI (category → generate → before/after) | ✅ |
+| Design detail (comparison, regenerate, delete) | ✅ |
+| Budget summary + editor UI | ✅ |
+| Share dialog + Comments + Notifications | ✅ |
+| Camera capture + Templates library | ✅ |
+
+### Phase 3 — UX Polish + Feature Completion (6 specs + 1 feature)
+
+| Feature | Status |
+|---------|--------|
+| Inter font (next/font/google, zero FOUT) | ✅ |
+| AppHeader + breadcrumbs + skeleton loaders | ✅ |
+| Status chip colors + card hover effects | ✅ |
+| Responsive photo gallery (2/3/4 cols) | ✅ |
+| notistack Snackbar + ErrorState component | ✅ |
+| Fabric.js v6 editor (draw, text, shapes, undo/redo, auto-save) | ✅ |
+| Export module (image + comparison download) | ✅ |
+| Template seed data (12 templates) | ✅ |
+| Improved AI visualization transforms + watermark | ✅ |
+| **Apply Template to Room flow** | ✅ |
+
+### Remaining (Future Phases)
+
+| Feature | Phase |
+|---------|-------|
+| Google OAuth login | Phase 4 |
+| Email sending (Resend) | Phase 4 |
+| WebSocket real-time updates | Phase 4 |
+| Wire snackbars to all mutations | Phase 4 |
+| Real AI (SAM + Stable Diffusion) | Phase 4+ |
+| Production deployment | Phase 4+ |
 
 ---
 
-## 18. Setup for Testing
+## 20. Setup for Testing
 
 ### Start All Servers
 
@@ -511,7 +481,7 @@ Capture tab → Open Camera → Point at room → Capture
 # Terminal 1 — Database
 docker compose up postgres redis -d
 
-# Terminal 2 — API (from project root)
+# Terminal 2 — API
 cd apps/api
 pnpm dev
 
@@ -524,6 +494,13 @@ cd apps/ai-worker
 npx ts-node --transpile-only src/main.ts
 ```
 
+### Seed Template Data
+
+```bash
+cd apps/api
+npx prisma db seed
+```
+
 ### Access Points
 
 | Service | URL |
@@ -534,29 +511,28 @@ npx ts-node --transpile-only src/main.ts
 
 ### Mobile Testing
 
-1. Find your PC's IP: `ipconfig` (look for IPv4)
-2. Start frontend: `npx next dev --hostname 0.0.0.0 --port 3000`
-3. Open `http://<YOUR-PC-IP>:3000` on your phone
+1. `ipconfig` → find IPv4 address
+2. `cd apps/web && npx next dev --hostname 0.0.0.0 --port 3000`
+3. Open `http://<YOUR-PC-IP>:3000` on phone
 
 ---
 
-## 19. Troubleshooting
+## 21. Troubleshooting
 
 | Issue | Solution |
 |-------|---------|
-| "Get Started" does nothing | Clear browser cache, reload |
-| Can't login | Password needs uppercase + lowercase + number |
+| "Cannot find module ./XXX.js" | `cd apps/web && rm -rf .next && pnpm dev` |
+| Visualization stuck on "Queued" | Start AI worker: `cd apps/ai-worker && npx ts-node --transpile-only src/main.ts` |
 | Photo upload fails | Check file is JPEG/PNG/WebP, under 20MB. API must be running. |
-| Visualization stuck on "Queued" | Start the AI worker: `cd apps/ai-worker && npx ts-node --transpile-only src/main.ts` |
-| Visualization shows "Failed" | Check AI worker terminal for errors. Try uploading a new photo and generating again. |
-| "Cannot find module ./591.js" | Delete `.next` folder: `cd apps/web && rm -rf .next && pnpm dev` |
-| Projects disappear after login | Session expired — log out and log back in |
-| Budget not showing | Refresh the page after adding items |
-| Share link not working | Recipient must create an account first |
-| Camera not working | Allow camera permission in browser. HTTPS may be required. |
-| Page shows spinner forever | Check API server running on port 4000 |
+| Can't login | Password needs uppercase + lowercase + number (min 8 chars) |
 | 401 errors | Session expired — log in again |
+| Projects don't appear | Log out and log back in |
+| Editor not loading | Clear `.next` cache and restart dev server |
+| Template "Apply" fails | Selected room must have at least one photo |
+| Camera not working | Allow browser permission. HTTPS may be required. |
+| Budget not updating | Refresh the page |
+| DB seed error | Run `npx prisma migrate dev` first, then `npx prisma db seed` |
 
 ---
 
-*Built with Next.js 15, NestJS 10, PostgreSQL 16, Redis 7, and Sharp. 16 specs designed and implemented across 2 phases.*
+*Built with Next.js 15, NestJS 10, PostgreSQL 16, Redis 7, Fabric.js 6, Sharp, BullMQ. 23 specs designed and implemented across 3 phases + 1 feature.*
