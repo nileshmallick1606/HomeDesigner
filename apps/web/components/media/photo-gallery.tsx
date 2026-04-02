@@ -4,6 +4,7 @@ import { useState } from 'react';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import ImageList from '@mui/material/ImageList';
+import { ClickableImage } from './image-viewer';
 import ImageListItem from '@mui/material/ImageListItem';
 import IconButton from '@mui/material/IconButton';
 import Dialog from '@mui/material/Dialog';
@@ -28,7 +29,7 @@ interface PhotoGalleryProps {
   onDelete?: (photoId: string) => void;
 }
 
-export function PhotoGallery({ photos, onPhotoClick, onDelete }: PhotoGalleryProps) {
+export function PhotoGallery({ photos, onDelete }: PhotoGalleryProps) {
   const [deleteTarget, setDeleteTarget] = useState<Photo | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -58,12 +59,10 @@ export function PhotoGallery({ photos, onPhotoClick, onDelete }: PhotoGalleryPro
             key={photo.id}
             sx={{ position: 'relative', borderRadius: 1, overflow: 'hidden' }}
           >
-            <img
-              src={photo.thumbnailUrl || photo.originalUrl}
+            <ClickableImage
+              src={photo.originalUrl}
               alt="Room photo"
-              loading="lazy"
-              onClick={() => onPhotoClick?.(photo)}
-              style={{ width: '100%', height: 120, objectFit: 'cover', cursor: 'pointer' }}
+              sx={{ width: '100%', height: 120, objectFit: 'cover' }}
             />
             {onDelete && (
               <IconButton

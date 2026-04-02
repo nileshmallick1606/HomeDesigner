@@ -54,42 +54,22 @@ export async function generateVisualization(
   logger.log('Generating ControlNet conditioning...');
   const edgeMap = await cannyEdges(photoBuffer);
 
-  // Step 2: Load models
-  logger.log('Loading SD models...');
-  const textEncoder = await loadModel('sd15-text-encoder');
-  const unet = await loadModel('sd15-unet');
-  const vaeDecoder = await loadModel('sd15-vae-decoder');
+  // NOTE: Full SD 1.5 ONNX pipeline (text encoder → UNet → VAE decoder)
+  // is scaffolded but not yet wired. The models require ~5GB download and
+  // complex tensor orchestration. When ready, uncomment the model loading
+  // below and remove the enhanced fallback.
+  //
+  // TODO: Wire full SD pipeline:
+  // const textEncoder = await loadModel('sd15-text-encoder');
+  // const unet = await loadModel('sd15-unet');
+  // const vaeDecoder = await loadModel('sd15-vae-decoder');
+  // 1. Tokenize prompt → input_ids
+  // 2. Text encoder → text embeddings
+  // 3. Init random latents (1, 4, 64, 64)
+  // 4. Denoise loop: UNet(latents, timestep, embeds, controlnet) × steps
+  // 5. VAE decode → pixel image
 
-  logger.log(`Text encoder inputs: ${textEncoder.inputNames.join(', ')}`);
-  logger.log(`UNet inputs: ${unet.inputNames.join(', ')}`);
-  logger.log(`VAE decoder inputs: ${vaeDecoder.inputNames.join(', ')}`);
-
-  // Step 3: Encode prompt
-  // NOTE: Full CLIP tokenization requires @xenova/transformers
-  // For now, we'll attempt inference and fall back if tensor shapes don't match
-  logger.log('Attempting SD inference pipeline...');
-
-  try {
-    // The actual SD ONNX pipeline requires specific tensor shapes and
-    // a denoising loop. This is a complex multi-model orchestration.
-    // If the models are compatible, this will produce real results.
-    // If not, we throw to trigger the enhanced fallback.
-
-    // Attempt a simplified inference pass
-    // Real implementation would do:
-    // 1. Tokenize prompt → input_ids tensor
-    // 2. Text encoder forward pass → text embeddings
-    // 3. Initialize random latents (1, 4, 64, 64)
-    // 4. For each step: UNet(latents, timestep, text_embeds) → noise_pred
-    // 5. Scheduler step: latents = latents - noise_pred * sigma
-    // 6. VAE decode: latents → pixel image
-
-    // For now, throw to use enhanced fallback
-    // When ONNX pipeline is fully wired, remove this throw
-    throw new Error('SD ONNX pipeline integration pending — using enhanced fallback');
-  } catch (pipelineError) {
-    logger.log(`SD pipeline: ${pipelineError}. Using enhanced Sharp fallback.`);
-  }
+  logger.log('Using enhanced edge-aware visualization (SD pipeline pending)...');
 
   // Enhanced fallback: combine edge-aware transforms with the source photo
   // This produces better results than basic mock by using ControlNet edges
@@ -99,41 +79,68 @@ export async function generateVisualization(
   const width = metadata.width || 800;
   const height = metadata.height || 600;
 
-  // Apply category-specific transform (enhanced version)
-  let pipeline = sharp(photoBuffer);
+  // Apply category-specific transform (more aggressive for visible difference)
+  let transformedBuffer: Buffer;
 
   switch (category) {
     case 'CIVIL':
-      pipeline = pipeline.modulate({ saturation: 0.7 }).tint({ r: 160, g: 175, b: 220 });
+      transformedBuffer = await sharp(photoBuffer)
+        .modulate({ saturation: 0.5, hue: 30 })
+        .tint({ r: 130, g: 155, b: 210 })
+        .modulate({ brightness: 1.05 })
+        .webp({ quality: 90 }).toBuffer();
       break;
     case 'FURNISHINGS':
-      pipeline = pipeline.modulate({ brightness: 1.15, saturation: 1.25 });
+      transformedBuffer = await sharp(photoBuffer)
+        .modulate({ brightness: 1.2, saturation: 1.4, hue: 15 })
+        .webp({ quality: 90 }).toBuffer();
       break;
     case 'BATHROOM_CAT':
-      pipeline = pipeline.tint({ r: 160, g: 215, b: 220 }).modulate({ saturation: 1.4 });
+      transformedBuffer = await sharp(photoBuffer)
+        .modulate({ saturation: 1.5, hue: -30 })
+        .tint({ r: 140, g: 210, b: 220 })
+        .webp({ quality: 90 }).toBuffer();
       break;
     case 'KITCHEN_CAT':
-      pipeline = pipeline.tint({ r: 160, g: 210, b: 160 }).modulate({ brightness: 1.1 });
+      transformedBuffer = await sharp(photoBuffer)
+        .modulate({ saturation: 1.3, hue: -60 })
+        .tint({ r: 140, g: 200, b: 140 })
+        .modulate({ brightness: 1.1 })
+        .webp({ quality: 90 }).toBuffer();
       break;
     case 'ELECTRICAL':
-      pipeline = pipeline.modulate({ brightness: 1.25 }).tint({ r: 245, g: 220, b: 170 });
+      transformedBuffer = await sharp(photoBuffer)
+        .modulate({ brightness: 1.3, saturation: 1.2, hue: 20 })
+        .tint({ r: 250, g: 220, b: 160 })
+        .webp({ quality: 90 }).toBuffer();
       break;
     default:
-      pipeline = pipeline.modulate({ saturation: 0.3, brightness: 1.05 }).tint({ r: 215, g: 190, b: 155 });
+      transformedBuffer = await sharp(photoBuffer)
+        .modulate({ saturation: 0.2, brightness: 1.1 })
+        .tint({ r: 220, g: 195, b: 160 })
+        .webp({ quality: 90 }).toBuffer();
   }
 
-  const transformedBuffer = await pipeline.webp({ quality: 90 }).toBuffer();
-
-  // Blend edge map with transformed image for edge-aware result
-  const edgeOverlay = await sharp(edgeMap)
+  // Composite edge highlights onto the transformed image
+  const edgeHighlight = await sharp(edgeMap)
     .resize(width, height)
-    .ensureAlpha(0.15) // subtle edge overlay
-    .toBuffer();
-
-  const imageBuffer = await sharp(transformedBuffer)
-    .composite([{ input: edgeOverlay, blend: 'soft-light' }])
+    .threshold(100)
+    .negate()
+    .toColourspace('srgb')
+    .ensureAlpha()
     .webp({ quality: 90 })
     .toBuffer();
+
+  let imageBuffer: Buffer;
+  try {
+    imageBuffer = await sharp(transformedBuffer)
+      .composite([{ input: edgeHighlight, blend: 'multiply' }])
+      .webp({ quality: 90 })
+      .toBuffer();
+  } catch {
+    // If composite fails, use transformed buffer directly
+    imageBuffer = transformedBuffer;
+  }
 
   const config = getModelConfig('sd15-unet');
   const modelVersion = config?.version || 'sd15-cn-v1';
