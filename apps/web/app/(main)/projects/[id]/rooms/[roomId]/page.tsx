@@ -21,6 +21,7 @@ import { CategorySelector } from '../../../../../../components/visualization/cat
 import { JobStatus } from '../../../../../../components/ai/job-status';
 import { BeforeAfterSlider } from '../../../../../../components/comparison/before-after-slider';
 import { DesignCard } from '../../../../../../components/visualization/design-card';
+import { BudgetEditor } from '../../../../../../components/budget/budget-editor';
 
 interface Photo {
   id: string;
@@ -232,6 +233,10 @@ export default function RoomDetailPage() {
           description={room.photos.length > 0 ? 'Select a category above and click Generate.' : 'Add photos first, then visualize changes.'}
         />
       )}
+
+      <Divider sx={{ my: 3 }} />
+      <Typography variant="h6">Budget</Typography>
+      <BudgetEditor roomId={roomId} />
     </Container>
   );
 }

@@ -12,6 +12,10 @@ import CardActionArea from '@mui/material/CardActionArea';
 import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import AddIcon from '@mui/icons-material/Add';
+import ShareIcon from '@mui/icons-material/Share';
+import IconButton from '@mui/material/IconButton';
+import { ShareDialog } from '../../../../components/sharing/share-dialog';
+import { CommentsPanel } from '../../../../components/comments/comments-panel';
 import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
 import BathroomIcon from '@mui/icons-material/Bathroom';
 import KitchenIcon from '@mui/icons-material/Kitchen';
@@ -23,8 +27,10 @@ import BuildIcon from '@mui/icons-material/Build';
 import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize';
 import Link from 'next/link';
 import Grid from '@mui/material/Grid';
+import Divider from '@mui/material/Divider';
 import { apiClient } from '../../../../lib/api-client';
 import { EmptyState } from '../../../../components/ui/empty-state';
+import { BudgetSummary } from '../../../../components/budget/budget-summary';
 
 const ROOM_ICONS: Record<string, React.ReactNode> = {
   BATHROOM: <BathroomIcon />,
@@ -59,6 +65,7 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   useEffect(() => {
     apiClient
@@ -87,9 +94,14 @@ export default function ProjectDetailPage() {
   return (
     <Container maxWidth="md" sx={{ pt: 3 }}>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>
-          {project.name}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h5" fontWeight={700}>
+            {project.name}
+          </Typography>
+          <IconButton onClick={() => setShareDialogOpen(true)} color="primary">
+            <ShareIcon />
+          </IconButton>
+        </Box>
         <Box sx={{ display: 'flex', gap: 1, mt: 1, alignItems: 'center' }}>
           <Chip label={project.status} size="small" color="default" />
           {project.overallBudget && (
@@ -154,6 +166,18 @@ export default function ProjectDetailPage() {
           ))}
         </Grid>
       )}
+
+      <Divider sx={{ my: 3 }} />
+      <Typography variant="h6">Budget</Typography>
+      <BudgetSummary projectId={projectId} />
+
+      <CommentsPanel projectId={projectId} />
+
+      <ShareDialog
+        projectId={projectId}
+        open={shareDialogOpen}
+        onClose={() => setShareDialogOpen(false)}
+      />
     </Container>
   );
 }
