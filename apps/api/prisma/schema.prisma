@@ -1,0 +1,471 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum ProfileType {
+  HOMEOWNER
+  ARCHITECT_INDIVIDUAL
+  ARCHITECT_ORG
+}
+
+enum PlatformRole {
+  FREE_USER
+  PRO_USER
+  ARCHITECT
+  ORG_ADMIN
+  ORG_MEMBER
+  PLATFORM_ADMIN
+}
+
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum ProjectMemberRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum OrgMemberRole {
+  ADMIN
+  MEMBER
+}
+
+enum RoomType {
+  BATHROOM
+  KITCHEN
+  BEDROOM
+  LIVING_ROOM
+  DINING_ROOM
+  BALCONY
+  UTILITY
+  CUSTOM
+}
+
+enum DesignCategory {
+  CIVIL
+  FURNISHINGS
+  BATHROOM_CAT
+  KITCHEN_CAT
+  ELECTRICAL
+  OTHER
+}
+
+enum DesignStatus {
+  DRAFT
+  FINAL
+}
+
+enum AiJobType {
+  SEGMENTATION
+  VISUALIZATION
+}
+
+enum AiJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum NotificationType {
+  SHARE_INVITE
+  COMMENT
+  AI_COMPLETE
+  PROJECT_UPDATE
+}
+
+// ============================================================
+// User & Organization
+// ============================================================
+
+model User {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String       @unique
+  passwordHash  String?      @map("password_hash")
+  name          String
+  avatarUrl     String?      @map("avatar_url")
+  profileType   ProfileType  @default(HOMEOWNER) @map("profile_type")
+  platformRole  PlatformRole @default(FREE_USER) @map("platform_role")
+  emailVerified Boolean      @default(false) @map("email_verified")
+  googleId      String?      @unique @map("google_id")
+  preferences   Json?
+  refreshToken  String?      @map("refresh_token")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  deletedAt     DateTime?    @map("deleted_at")
+
+  // Relations
+  orgMemberships  OrgMember[]
+  ownedProjects   Project[]       @relation("ProjectOwner")
+  projectMembers  ProjectMember[]
+  comments        Comment[]
+  notifications   Notification[]
+  createdLinks    ShareLink[]
+  createdTemplates Template[]
+
+  @@map("users")
+}
+
+model Organization {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String    @unique
+  logoUrl   String?   @map("logo_url")
+  settings  Json?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  members  OrgMember[]
+  projects Project[]
+
+  @@map("organizations")
+}
+
+model OrgMember {
+  id       String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId   String        @map("user_id") @db.Uuid
+  orgId    String        @map("org_id") @db.Uuid
+  role     OrgMemberRole @default(MEMBER)
+  joinedAt DateTime      @default(now()) @map("joined_at")
+
+  user String? @ignore
+  org  String? @ignore
+
+  userRel Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  orgRel  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@map("org_members")
+}
+
+// ============================================================
+// Project & Room
+// ============================================================
+
+model Project {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  description   String?
+  status        ProjectStatus @default(DRAFT)
+  overallBudget Decimal?      @map("overall_budget") @db.Decimal(12, 2)
+  timelineStart DateTime?     @map("timeline_start")
+  timelineEnd   DateTime?     @map("timeline_end")
+  ownerId       String        @map("owner_id") @db.Uuid
+  orgId         String?       @map("org_id") @db.Uuid
+  lockedBy      String?       @map("locked_by") @db.Uuid
+  lockedAt      DateTime?     @map("locked_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+
+  // Relations
+  owner          User            @relation("ProjectOwner", fields: [ownerId], references: [id])
+  organization   Organization?   @relation(fields: [orgId], references: [id])
+  members        ProjectMember[]
+  rooms          Room[]
+  comments       Comment[]
+  shareLinks     ShareLink[]
+  projectBudgets ProjectBudget[]
+
+  @@index([ownerId, status])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId String            @map("project_id") @db.Uuid
+  userId    String            @map("user_id") @db.Uuid
+  role      ProjectMemberRole @default(VIEWER)
+  joinedAt  DateTime          @default(now()) @map("joined_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+model Room {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId String    @map("project_id") @db.Uuid
+  name      String
+  type      RoomType  @default(CUSTOM)
+  dimensions Json?
+  budget    Decimal?  @db.Decimal(12, 2)
+  notes     String?
+  sortOrder Int       @default(0) @map("sort_order")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relations
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  photos      RoomPhoto[]
+  designs     Design[]
+  comments    Comment[]
+  roomBudgets RoomBudget[]
+
+  @@index([projectId])
+  @@map("rooms")
+}
+
+// ============================================================
+// Photos & AI
+// ============================================================
+
+model RoomPhoto {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roomId       String   @map("room_id") @db.Uuid
+  originalUrl  String   @map("original_url")
+  thumbnailUrl String?  @map("thumbnail_url")
+  width        Int?
+  height       Int?
+  sizeBytes    Int?     @map("size_bytes")
+  mimeType     String?  @map("mime_type")
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  room          Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  segmentations Segmentation[]
+  aiJobs        AiJob[]
+
+  @@index([roomId])
+  @@map("room_photos")
+}
+
+model Segmentation {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roomPhotoId  String      @map("room_photo_id") @db.Uuid
+  maskUrl      String?     @map("mask_url")
+  elements     Json?
+  modelVersion String?     @map("model_version")
+  status       AiJobStatus @default(QUEUED)
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  roomPhoto RoomPhoto @relation(fields: [roomPhotoId], references: [id], onDelete: Cascade)
+
+  @@index([roomPhotoId])
+  @@map("segmentations")
+}
+
+// ============================================================
+// Designs & Visualizations
+// ============================================================
+
+model Design {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roomId      String         @map("room_id") @db.Uuid
+  name        String
+  category    DesignCategory
+  subCategory String?        @map("sub_category")
+  status      DesignStatus   @default(DRAFT)
+  canvasState Json?          @map("canvas_state")
+  version     Int            @default(1)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  room           Room              @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  visualizations Visualization[]
+  versions       DesignVersion[]
+  comments       Comment[]
+  aiJobs         AiJob[]
+
+  @@index([roomId, category])
+  @@map("designs")
+}
+
+model Visualization {
+  id               String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  designId         String      @map("design_id") @db.Uuid
+  imageUrl         String?     @map("image_url")
+  thumbnailUrl     String?     @map("thumbnail_url")
+  prompt           String?
+  modelVersion     String?     @map("model_version")
+  generationParams Json?       @map("generation_params")
+  status           AiJobStatus @default(QUEUED)
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  design   Design    @relation(fields: [designId], references: [id], onDelete: Cascade)
+  comments Comment[]
+
+  @@index([designId, status])
+  @@map("visualizations")
+}
+
+model DesignVersion {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  designId      String   @map("design_id") @db.Uuid
+  versionNumber Int      @map("version_number")
+  canvasState   Json     @map("canvas_state")
+  thumbnailUrl  String?  @map("thumbnail_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  design Design @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@map("design_versions")
+}
+
+// ============================================================
+// Templates
+// ============================================================
+
+model Template {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  category    DesignCategory
+  subCategory String?         @map("sub_category")
+  roomType    RoomType
+  thumbnailUrl String?        @map("thumbnail_url")
+  canvasState Json?           @map("canvas_state")
+  isSystem    Boolean         @default(false) @map("is_system")
+  createdById String?         @map("created_by_id") @db.Uuid
+  tags        String[]
+  sortOrder   Int             @default(0) @map("sort_order")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  createdBy User? @relation(fields: [createdById], references: [id])
+
+  @@map("templates")
+}
+
+// ============================================================
+// Budget
+// ============================================================
+
+model ProjectBudget {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId       String         @map("project_id") @db.Uuid
+  category        DesignCategory
+  estimatedAmount Decimal        @default(0) @map("estimated_amount") @db.Decimal(12, 2)
+  actualAmount    Decimal        @default(0) @map("actual_amount") @db.Decimal(12, 2)
+  notes           String?
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_budgets")
+}
+
+model RoomBudget {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roomId          String         @map("room_id") @db.Uuid
+  category        DesignCategory
+  estimatedAmount Decimal        @default(0) @map("estimated_amount") @db.Decimal(12, 2)
+  actualAmount    Decimal        @default(0) @map("actual_amount") @db.Decimal(12, 2)
+  notes           String?
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@map("room_budgets")
+}
+
+// ============================================================
+// Comments & Notifications
+// ============================================================
+
+model Comment {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content         String
+  authorId        String    @map("author_id") @db.Uuid
+  projectId       String    @map("project_id") @db.Uuid
+  roomId          String?   @map("room_id") @db.Uuid
+  designId        String?   @map("design_id") @db.Uuid
+  visualizationId String?   @map("visualization_id") @db.Uuid
+  parentId        String?   @map("parent_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  room          Room?          @relation(fields: [roomId], references: [id])
+  design        Design?        @relation(fields: [designId], references: [id])
+  visualization Visualization? @relation(fields: [visualizationId], references: [id])
+  parent        Comment?       @relation("CommentReplies", fields: [parentId], references: [id])
+  replies       Comment[]      @relation("CommentReplies")
+
+  @@index([projectId])
+  @@map("comments")
+}
+
+model Notification {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String
+  body      String?
+  data      Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+// ============================================================
+// Sharing
+// ============================================================
+
+model ShareLink {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  projectId   String            @map("project_id") @db.Uuid
+  token       String            @unique
+  role        ProjectMemberRole @default(VIEWER)
+  expiresAt   DateTime?         @map("expires_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  createdById String            @map("created_by_id") @db.Uuid
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User    @relation(fields: [createdById], references: [id])
+
+  @@map("share_links")
+}
+
+// ============================================================
+// AI Jobs
+// ============================================================
+
+model AiJob {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        AiJobType
+  status      AiJobStatus @default(QUEUED)
+  priority    Int         @default(0)
+  userId      String      @map("user_id") @db.Uuid
+  roomPhotoId String?     @map("room_photo_id") @db.Uuid
+  designId    String?     @map("design_id") @db.Uuid
+  attempts    Int         @default(0)
+  maxAttempts Int         @default(3) @map("max_attempts")
+  result      Json?
+  error       String?
+  startedAt   DateTime?   @map("started_at")
+  completedAt DateTime?   @map("completed_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  roomPhoto RoomPhoto? @relation(fields: [roomPhotoId], references: [id])
+  design    Design?    @relation(fields: [designId], references: [id])
+
+  @@index([status, priority, createdAt])
+  @@map("ai_jobs")
+}
