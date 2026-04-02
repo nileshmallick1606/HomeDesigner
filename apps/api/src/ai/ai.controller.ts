@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Body, Param, Req, ParseUUIDPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Patch, Body, Param, Req, ParseUUIDPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AiService } from './ai.service';
@@ -57,6 +57,15 @@ export class AiController {
   @ApiOperation({ summary: 'Delete design and its visualizations' })
   async deleteDesign(@Param('designId', ParseUUIDPipe) designId: string) {
     return this.aiService.deleteDesign(designId);
+  }
+
+  @Patch('designs/:designId')
+  @ApiOperation({ summary: 'Update design canvas state' })
+  async updateDesign(
+    @Param('designId', ParseUUIDPipe) designId: string,
+    @Body() body: { canvasState?: Record<string, unknown> },
+  ) {
+    return this.aiService.updateDesignCanvasState(designId, body.canvasState);
   }
 
   @Post('designs/:designId/regenerate')

@@ -107,6 +107,17 @@ export class AiService {
     });
   }
 
+  async updateDesignCanvasState(designId: string, canvasState?: Record<string, unknown>) {
+    const design = await this.prisma.design.findUnique({ where: { id: designId } });
+    if (!design) throw new NotFoundException('Design not found');
+
+    return this.prisma.design.update({
+      where: { id: designId },
+      data: { canvasState: (canvasState as any) || undefined, version: { increment: 1 } },
+      select: { id: true, version: true },
+    });
+  }
+
   async getDesign(designId: string) {
     const design = await this.prisma.design.findUnique({
       where: { id: designId },

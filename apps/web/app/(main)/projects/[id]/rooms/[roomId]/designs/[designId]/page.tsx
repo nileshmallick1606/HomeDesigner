@@ -161,7 +161,14 @@ export default function DesignDetailPage() {
         <JobStatus jobId={activeJobId} onComplete={handleJobComplete} />
       )}
 
-      <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+      <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
+        <Button
+          variant="contained"
+          component={Link}
+          href={`/projects/${projectId}/rooms/${roomId}/designs/${designId}/edit`}
+        >
+          Edit / Annotate
+        </Button>
         <Button
           variant="outlined"
           startIcon={regenerating ? <CircularProgress size={18} /> : <RefreshIcon />}
