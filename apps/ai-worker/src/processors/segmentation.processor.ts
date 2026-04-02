@@ -36,8 +36,10 @@ export async function processSegmentation(job: Job) {
     let modelVersion: string;
 
     const samAvailable = await isModelDownloaded('sam-vit-b');
+    const enableRealAI = process.env.ENABLE_REAL_AI?.trim().toLowerCase() === 'true';
+    logger.log(`SAM available: ${samAvailable}, ENABLE_REAL_AI: "${process.env.ENABLE_REAL_AI}" → ${enableRealAI}`);
 
-    if (samAvailable || process.env.ENABLE_REAL_AI === 'true') {
+    if (samAvailable || enableRealAI) {
       try {
         logger.log('Attempting real SAM segmentation...');
         const result = await runSegmentation(photoBuffer);

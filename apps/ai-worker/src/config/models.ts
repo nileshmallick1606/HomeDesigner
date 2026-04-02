@@ -14,14 +14,14 @@ export interface ModelConfig {
 export const MODEL_CONFIGS: Record<string, ModelConfig> = {
   'sam-vit-b': {
     name: 'SAM ViT-B (Segment Anything)',
-    url: 'https://huggingface.co/onnx-community/sam-vit-base/resolve/main/encoder_model.onnx',
+    url: 'https://huggingface.co/Xenova/sam-vit-base/resolve/main/onnx/vision_encoder.onnx',
     filePath: path.join(MODELS_DIR, 'sam-vit-b-encoder.onnx'),
     version: 'sam-vit-b-v1',
     sizeBytes: 375_000_000,
   },
   'sam-vit-b-decoder': {
     name: 'SAM ViT-B Decoder',
-    url: 'https://huggingface.co/onnx-community/sam-vit-base/resolve/main/decoder_model.onnx',
+    url: 'https://huggingface.co/Xenova/sam-vit-base/resolve/main/onnx/prompt_encoder_mask_decoder.onnx',
     filePath: path.join(MODELS_DIR, 'sam-vit-b-decoder.onnx'),
     version: 'sam-vit-b-v1',
     sizeBytes: 16_000_000,
