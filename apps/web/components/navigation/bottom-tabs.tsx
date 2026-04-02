@@ -14,7 +14,7 @@ import PersonIcon from '@mui/icons-material/Person';
 const tabs = [
   { label: 'Home', icon: <HomeIcon />, href: '/dashboard' },
   { label: 'Projects', icon: <FolderIcon />, href: '/projects' },
-  { label: 'Capture', icon: <AddCircleIcon sx={{ fontSize: 36 }} />, href: '/capture' },
+  { label: 'Capture', icon: <AddCircleIcon />, href: '/capture' },
   { label: 'Library', icon: <GridViewIcon />, href: '/library' },
   { label: 'Profile', icon: <PersonIcon />, href: '/profile' },
 ];
@@ -40,7 +40,7 @@ export function BottomTabs() {
             icon={tab.icon}
             component={Link}
             href={tab.href}
-            sx={{ minWidth: 0, '& .MuiBottomNavigationAction-label': { fontSize: '0.7rem' } }}
+            sx={{ minWidth: 0, '& .MuiBottomNavigationAction-label': { fontSize: '0.75rem' } }}
           />
         ))}
       </BottomNavigation>

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 import ImageList from '@mui/material/ImageList';
 import ImageListItem from '@mui/material/ImageListItem';
 import IconButton from '@mui/material/IconButton';
@@ -43,9 +45,14 @@ export function PhotoGallery({ photos, onPhotoClick, onDelete }: PhotoGalleryPro
     }
   };
 
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(muiTheme.breakpoints.between('sm', 'md'));
+  const cols = isMobile ? 2 : isTablet ? 3 : 4;
+
   return (
     <>
-      <ImageList cols={3} gap={8}>
+      <ImageList cols={cols} gap={8}>
         {photos.map((photo) => (
           <ImageListItem
             key={photo.id}

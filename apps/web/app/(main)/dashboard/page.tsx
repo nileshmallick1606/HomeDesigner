@@ -8,11 +8,13 @@ import Card from '@mui/material/Card';
 import CardActionArea from '@mui/material/CardActionArea';
 import CardContent from '@mui/material/CardContent';
 import Chip from '@mui/material/Chip';
-import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
 import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import Link from 'next/link';
 import { apiClient } from '../../../lib/api-client';
+import { AppHeader } from '../../../components/ui/app-header';
+import { SkeletonCardGrid } from '../../../components/ui/skeleton-card';
+import { STATUS_COLORS } from '../../theme';
 import { EmptyState } from '../../../components/ui/empty-state';
 
 interface Project {
@@ -38,19 +40,16 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', pt: 8 }}>
-        <CircularProgress />
-      </Box>
+      <Container maxWidth="md">
+        <AppHeader title="Dashboard" />
+        <SkeletonCardGrid count={4} />
+      </Container>
     );
   }
 
   return (
-    <Container maxWidth="md" sx={{ pt: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>
-          Dashboard
-        </Typography>
-      </Box>
+    <Container maxWidth="md">
+      <AppHeader title="Dashboard" />
 
       {projects.length === 0 ? (
         <EmptyState
@@ -75,7 +74,7 @@ export default function DashboardPage() {
                         {project.name}
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 1, mt: 1, alignItems: 'center' }}>
-                        <Chip label={project.status} size="small" />
+                        <Chip label={project.status} size="small" color={STATUS_COLORS[project.status] || 'default'} />
                         {project._count && (
                           <Typography variant="caption" color="text.secondary">
                             {project._count.rooms} room{project._count.rooms !== 1 ? 's' : ''}

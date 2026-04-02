@@ -2,16 +2,26 @@
 
 import { createTheme } from '@mui/material/styles';
 
+// Status chip color mapping
+export const STATUS_COLORS: Record<string, 'default' | 'success' | 'info' | 'warning' | 'error'> = {
+  DRAFT: 'default',
+  ACTIVE: 'success',
+  COMPLETED: 'info',
+  ARCHIVED: 'warning',
+  FINAL: 'success',
+  FAILED: 'error',
+};
+
 export const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#1565C0', // Blue 800
+      main: '#1565C0',
       light: '#42A5F5',
       dark: '#0D47A1',
     },
     secondary: {
-      main: '#FF6F00', // Amber 900
+      main: '#FF6F00',
       light: '#FFA726',
       dark: '#E65100',
     },
@@ -21,7 +31,7 @@ export const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: 'var(--font-inter, "Inter", "Roboto", "Helvetica", "Arial", sans-serif)',
     h1: { fontWeight: 700 },
     h2: { fontWeight: 700 },
     h3: { fontWeight: 600 },
@@ -39,7 +49,7 @@ export const theme = createTheme({
           textTransform: 'none',
           fontWeight: 600,
           borderRadius: 8,
-          minHeight: 48, // Touch target (DC-13 / PRD §7)
+          minHeight: 48,
         },
       },
     },
@@ -47,6 +57,17 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
+          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          fontWeight: 500,
         },
       },
     },
