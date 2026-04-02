@@ -13,6 +13,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import PaletteIcon from '@mui/icons-material/Palette';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import ViewInArIcon from '@mui/icons-material/ViewInAr';
+import Alert from '@mui/material/Alert';
 import { apiClient } from '../../../../../../lib/api-client';
 import { EmptyState } from '../../../../../../components/ui/empty-state';
 import { PhotoUpload } from '../../../../../../components/media/photo-upload';
@@ -55,6 +57,11 @@ export default function RoomDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Segmentation state
+  const [segmenting, setSegmenting] = useState(false);
+  const [segJobId, setSegJobId] = useState('');
+  const [segResult, setSegResult] = useState<{ maskUrl?: string; elements?: unknown; modelVersion?: string } | null>(null);
+
   // Visualization state
   const [selectedCategory, setSelectedCategory] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -88,6 +95,40 @@ export default function RoomDetailPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start visualization');
       setGenerating(false);
+    }
+  };
+
+  const handleDetectElements = async () => {
+    if (!room || room.photos.length === 0) return;
+    setSegmenting(true);
+    setSegResult(null);
+    setError('');
+
+    try {
+      const result = await apiClient.fetch<{ jobId: string }>('/ai/segmentation', {
+        method: 'POST',
+        json: { roomPhotoId: room.photos[0].id },
+      });
+      setSegJobId(result.jobId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start segmentation');
+      setSegmenting(false);
+    }
+  };
+
+  const handleSegComplete = async () => {
+    setSegmenting(false);
+    setSegJobId('');
+    // Fetch segmentation result
+    if (room && room.photos.length > 0) {
+      try {
+        const result = await apiClient.fetch<{ maskUrl?: string; elements?: unknown; modelVersion?: string }>(
+          `/ai/segmentation/${room.photos[0].id}`,
+        );
+        setSegResult(result);
+      } catch {
+        // Segmentation result may not be available yet
+      }
     }
   };
 
@@ -163,6 +204,47 @@ export default function RoomDetailPage() {
           title="No Photos Yet"
           description="Upload photos of this room using the button above."
         />
+      )}
+
+      {/* Segmentation Section — Detect Elements */}
+      {room.photos.length > 0 && (
+        <>
+          <Divider sx={{ my: 3 }} />
+
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+            <ViewInArIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Detect Room Elements
+          </Typography>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            AI analyzes your room photo to identify walls, floor, ceiling, windows, and fixtures.
+          </Typography>
+
+          <Button
+            variant="outlined"
+            onClick={handleDetectElements}
+            disabled={segmenting}
+            startIcon={segmenting ? <CircularProgress size={18} /> : <ViewInArIcon />}
+            sx={{ mb: 2 }}
+          >
+            {segmenting ? 'Detecting...' : 'Detect Elements'}
+          </Button>
+
+          {segJobId && (
+            <JobStatus jobId={segJobId} onComplete={handleSegComplete} />
+          )}
+
+          {segResult && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Elements detected (model: {segResult.modelVersion || 'unknown'}).
+              {segResult.maskUrl && (
+                <Box component="img" src={segResult.maskUrl} alt="Segmentation mask"
+                  sx={{ display: 'block', mt: 1, maxWidth: '100%', maxHeight: 200, borderRadius: 1, opacity: 0.8 }}
+                />
+              )}
+            </Alert>
+          )}
+        </>
       )}
 
       {/* Visualization Section — only show when photos exist */}

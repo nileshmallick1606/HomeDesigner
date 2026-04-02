@@ -19,6 +19,8 @@ const logger = {
 
 async function main() {
   logger.log('Starting AI Worker...');
+  logger.log(`ENABLE_REAL_AI: ${process.env.ENABLE_REAL_AI || 'false (mock mode)'}`);
+  logger.log(`DATABASE_URL: ${process.env.DATABASE_URL ? 'set' : 'NOT SET'}`);
 
   const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
   const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
