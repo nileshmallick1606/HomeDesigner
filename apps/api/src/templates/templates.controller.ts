@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Query, ParseUUIDPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Post, Param, Query, Body, Req, ParseUUIDPipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import { TemplatesService } from './templates.service';
 import { Public } from '../auth/guards/public.decorator';
 
@@ -36,5 +37,17 @@ export class TemplatesController {
   @ApiOperation({ summary: 'Get template by ID' })
   async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.templatesService.findById(id);
+  }
+
+  @Post(':templateId/apply')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Apply template to a room' })
+  async applyTemplate(
+    @Req() req: Request,
+    @Param('templateId', ParseUUIDPipe) templateId: string,
+    @Body() body: { roomId: string },
+  ) {
+    const user = req.user as { sub: string };
+    return this.templatesService.applyTemplate(templateId, body.roomId, user.sub);
   }
 }
