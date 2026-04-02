@@ -8,292 +8,280 @@ const logger = {
 };
 
 const SAM_INPUT_SIZE = 1024;
+const MASK_THRESHOLD = 0.0;
 
-// Colors for segment visualization (up to 10 segments)
 const SEGMENT_COLORS = [
-  { r: 135, g: 206, b: 235, a: 100 }, // light blue
-  { r: 144, g: 238, b: 144, a: 100 }, // light green
-  { r: 255, g: 255, b: 150, a: 100 }, // yellow
-  { r: 210, g: 180, b: 140, a: 100 }, // tan
-  { r: 255, g: 182, b: 193, a: 100 }, // pink
-  { r: 186, g: 153, b: 255, a: 100 }, // lavender
-  { r: 255, g: 200, b: 120, a: 100 }, // peach
-  { r: 150, g: 220, b: 200, a: 100 }, // teal
-  { r: 255, g: 160, b: 160, a: 100 }, // salmon
-  { r: 200, g: 200, b: 200, a: 100 }, // grey
+  { r: 135, g: 206, b: 235 },
+  { r: 144, g: 238, b: 144 },
+  { r: 255, g: 255, b: 150 },
+  { r: 210, g: 180, b: 140 },
+  { r: 255, g: 182, b: 193 },
+  { r: 186, g: 153, b: 255 },
+  { r: 255, g: 200, b: 120 },
+  { r: 150, g: 220, b: 200 },
+  { r: 255, g: 160, b: 160 },
+  { r: 200, g: 200, b: 200 },
 ];
 
-const ROOM_LABELS = ['wall', 'floor', 'ceiling', 'window', 'door', 'furniture', 'fixture', 'counter', 'shelf', 'other'];
+// ─── Preprocessing ──────────────────────────────────────────────
 
-/**
- * Preprocess image for SAM encoder
- */
-async function preprocessImage(imageBuffer: Buffer): Promise<{
-  tensor: Tensor;
-  originalWidth: number;
-  originalHeight: number;
-}> {
-  const metadata = await sharp(imageBuffer).metadata();
-  const originalWidth = metadata.width || 800;
-  const originalHeight = metadata.height || 600;
+async function preprocessImage(imageBuffer: Buffer) {
+  const meta = await sharp(imageBuffer).metadata();
+  const origW = meta.width || 800;
+  const origH = meta.height || 600;
 
-  const resized = await sharp(imageBuffer)
-    .resize(SAM_INPUT_SIZE, SAM_INPUT_SIZE, { fit: 'contain', background: { r: 0, g: 0, b: 0 } })
+  const raw = await sharp(imageBuffer)
+    .resize(SAM_INPUT_SIZE, SAM_INPUT_SIZE, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0 },
+    })
     .removeAlpha()
     .raw()
     .toBuffer();
 
-  const floatData = new Float32Array(3 * SAM_INPUT_SIZE * SAM_INPUT_SIZE);
-  for (let i = 0; i < SAM_INPUT_SIZE * SAM_INPUT_SIZE; i++) {
-    floatData[i] = resized[i * 3] / 255.0;
-    floatData[SAM_INPUT_SIZE * SAM_INPUT_SIZE + i] = resized[i * 3 + 1] / 255.0;
-    floatData[2 * SAM_INPUT_SIZE * SAM_INPUT_SIZE + i] = resized[i * 3 + 2] / 255.0;
+  const chw = new Float32Array(3 * SAM_INPUT_SIZE * SAM_INPUT_SIZE);
+  const pixels = SAM_INPUT_SIZE * SAM_INPUT_SIZE;
+  for (let i = 0; i < pixels; i++) {
+    chw[i]              = raw[i * 3]     / 255;
+    chw[pixels + i]     = raw[i * 3 + 1] / 255;
+    chw[2 * pixels + i] = raw[i * 3 + 2] / 255;
   }
 
   return {
-    tensor: new Tensor('float32', floatData, [1, 3, SAM_INPUT_SIZE, SAM_INPUT_SIZE]),
-    originalWidth,
-    originalHeight,
+    tensor: new Tensor('float32', chw, [1, 3, SAM_INPUT_SIZE, SAM_INPUT_SIZE]),
+    origW,
+    origH,
   };
 }
 
-/**
- * Run SAM decoder with a single point prompt
- */
-async function runDecoder(
-  decoderSession: InferenceSession,
-  imageEmbeddings: Tensor,
-  pointX: number,
-  pointY: number,
-): Promise<{ mask: Float32Array; score: number; maskH: number; maskW: number } | null> {
-  try {
-    // Point coordinates (1, 1, 2) — single point
-    const pointCoords = new Tensor('float32', new Float32Array([pointX, pointY]), [1, 1, 2]);
-    // Point labels: 1 = foreground point
-    const pointLabels = new Tensor('float32', new Float32Array([1]), [1, 1]);
-    // No mask input
-    const maskInput = new Tensor('float32', new Float32Array(256 * 256).fill(0), [1, 1, 256, 256]);
-    const hasMaskInput = new Tensor('float32', new Float32Array([0]), [1]);
-    // Original image size
-    const origImSize = new Tensor('float32', new Float32Array([SAM_INPUT_SIZE, SAM_INPUT_SIZE]), [2]);
+// ─── Decoder helper ─────────────────────────────────────────────
 
-    const feeds: Record<string, Tensor> = {
-      image_embeddings: imageEmbeddings,
-      point_coords: pointCoords,
-      point_labels: pointLabels,
-      mask_input: maskInput,
-      has_mask_input: hasMaskInput,
-      orig_im_size: origImSize,
-    };
+async function decodePoint(
+  decoder: InferenceSession,
+  encoderOuts: Record<string, Tensor>,
+  px: number,
+  py: number,
+): Promise<{ mask: Float32Array; score: number; h: number; w: number } | null> {
+  const feeds: Record<string, Tensor> = {};
 
-    const output = await decoderSession.run(feeds);
-
-    // Get masks and scores
-    const masks = output.masks || output[Object.keys(output)[0]];
-    const scores = output.iou_predictions || output[Object.keys(output)[1]];
-
-    if (!masks || !scores) return null;
-
-    const scoreData = scores.data as Float32Array;
-    const bestIdx = scoreData.indexOf(Math.max(...scoreData));
-    const bestScore = scoreData[bestIdx];
-
-    if (bestScore < 0.5) return null; // Low confidence
-
-    const maskData = masks.data as Float32Array;
-    const maskH = masks.dims[2] as number;
-    const maskW = masks.dims[3] as number;
-    const maskSize = maskH * maskW;
-
-    // Extract the best mask
-    const bestMask = new Float32Array(maskSize);
-    for (let i = 0; i < maskSize; i++) {
-      bestMask[i] = maskData[bestIdx * maskSize + i];
+  for (const name of decoder.inputNames) {
+    if (encoderOuts[name]) {
+      feeds[name] = encoderOuts[name];
+    } else if (name.includes('point')) {
+      feeds[name] = new Tensor('float32', Float32Array.from([px, py]), [1, 1, 2]);
+    } else if (name.includes('label')) {
+      feeds[name] = new Tensor('float32', Float32Array.from([1]), [1, 1]);
     }
-
-    return { mask: bestMask, score: bestScore, maskH, maskW };
-  } catch (err) {
-    logger.error(`Decoder error at (${pointX}, ${pointY}): ${err}`);
-    return null;
   }
+
+  const missing = decoder.inputNames.filter((n) => !feeds[n]);
+  for (const m of missing) {
+    if (m === 'mask_input') {
+      feeds[m] = new Tensor('float32', new Float32Array(256 * 256), [1, 1, 256, 256]);
+    } else if (m === 'has_mask_input') {
+      feeds[m] = new Tensor('float32', Float32Array.from([0]), [1]);
+    } else if (m.includes('orig_im') || m.includes('image_size')) {
+      feeds[m] = new Tensor('float32', Float32Array.from([SAM_INPUT_SIZE, SAM_INPUT_SIZE]), [2]);
+    } else {
+      logger.error(`Cannot map decoder input "${m}"`);
+      return null;
+    }
+  }
+
+  const out = await decoder.run(feeds);
+
+  const masksKey  = decoder.outputNames.find((n) => n.includes('mask'))  || decoder.outputNames[0];
+  const scoresKey = decoder.outputNames.find((n) => n.includes('iou') || n.includes('score')) || decoder.outputNames[1];
+
+  const masks  = out[masksKey];
+  const scores = out[scoresKey];
+  if (!masks || !scores) return null;
+
+  const sd = scores.data as Float32Array;
+  const best = sd.indexOf(Math.max(...sd));
+  if (sd[best] < 0.5) return null;
+
+  const h = masks.dims[2] as number;
+  const w = masks.dims[3] as number;
+  const slice = new Float32Array(h * w);
+  const off = best * h * w;
+  for (let i = 0; i < h * w; i++) slice[i] = (masks.data as Float32Array)[off + i];
+
+  return { mask: slice, score: sd[best], h, w };
 }
 
-/**
- * Label a segment based on its position in the image
- */
-function labelSegment(centerY: number, centerX: number, height: number, width: number, area: number): string {
-  const relY = centerY / height;
-  const relX = centerX / width;
-  const relArea = area / (width * height);
+// ─── Label by centroid position ─────────────────────────────────
 
-  if (relY < 0.25) return 'ceiling';
-  if (relY > 0.75) return 'floor';
-  if (relArea > 0.15) return 'wall';
-  if (relArea < 0.03) return 'fixture';
-  if (relX < 0.2 || relX > 0.8) return 'furniture';
+function labelByPosition(cy: number, cx: number, imgH: number, imgW: number): string {
+  const ry = cy / imgH;
+  if (ry < 0.22) return 'ceiling';
+  if (ry > 0.78) return 'floor';
+  const rx = cx / imgW;
+  if (rx < 0.18 || rx > 0.82) return 'wall_side';
   return 'wall';
 }
 
-/**
- * Main segmentation function — uses SAM encoder + decoder for real segmentation
- */
+// ─── Fallback: position-based heuristic ─────────────────────────
+
+function positionFallback(w: number, h: number) {
+  const regions = [
+    { label: 'ceiling', c: SEGMENT_COLORS[0], y0: 0, y1: 0.2, x0: 0, x1: 1 },
+    { label: 'wall_left', c: SEGMENT_COLORS[1], y0: 0.2, y1: 0.8, x0: 0, x1: 0.15 },
+    { label: 'wall_center', c: SEGMENT_COLORS[2], y0: 0.2, y1: 0.8, x0: 0.15, x1: 0.85 },
+    { label: 'wall_right', c: SEGMENT_COLORS[1], y0: 0.2, y1: 0.8, x0: 0.85, x1: 1 },
+    { label: 'floor', c: SEGMENT_COLORS[3], y0: 0.8, y1: 1, x0: 0, x1: 1 },
+  ];
+
+  const rgba = Buffer.alloc(w * h * 4);
+  const elements: Array<{
+    label: string; color: string; area: number;
+    bbox: { x: number; y: number; w: number; h: number };
+  }> = [];
+
+  for (const r of regions) {
+    const ys = Math.floor(h * r.y0), ye = Math.floor(h * r.y1);
+    const xs = Math.floor(w * r.x0), xe = Math.floor(w * r.x1);
+    for (let y = ys; y < ye; y++)
+      for (let x = xs; x < xe; x++) {
+        const i = (y * w + x) * 4;
+        rgba[i] = r.c.r; rgba[i+1] = r.c.g; rgba[i+2] = r.c.b; rgba[i+3] = 100;
+      }
+    elements.push({
+      label: r.label,
+      color: `rgba(${r.c.r},${r.c.g},${r.c.b},0.39)`,
+      area: (xe - xs) * (ye - ys),
+      bbox: { x: xs, y: ys, w: xe - xs, h: ye - ys },
+    });
+  }
+  return { rgba, elements };
+}
+
+// ─── Public API ─────────────────────────────────────────────────
+
 export async function runSegmentation(imageBuffer: Buffer): Promise<{
   maskBuffer: Buffer;
-  elements: Array<{ label: string; color: string; area: number; bbox: { x: number; y: number; w: number; h: number } }>;
+  elements: Array<{
+    label: string; color: string; area: number;
+    bbox: { x: number; y: number; w: number; h: number };
+  }>;
   modelVersion: string;
 }> {
-  logger.log('Starting SAM segmentation with decoder...');
+  logger.log('Starting SAM segmentation …');
+  const meta = await sharp(imageBuffer).metadata();
+  const imgW = meta.width || 800;
+  const imgH = meta.height || 600;
 
-  const metadata = await sharp(imageBuffer).metadata();
-  const width = metadata.width || 800;
-  const height = metadata.height || 600;
-
-  // Step 1: Run encoder
-  const encoderSession = await loadModel('sam-vit-b');
-  const { tensor } = await preprocessImage(imageBuffer);
-
-  logger.log('Running SAM encoder...');
-  const encoderOutput = await encoderSession.run({ pixel_values: tensor });
-  const imageEmbeddings = encoderOutput.image_embeddings || encoderOutput[Object.keys(encoderOutput)[0]];
-  logger.log(`Encoder done. Output shape: ${imageEmbeddings.dims?.join('x')}`);
-
-  // Step 2: Try loading decoder
-  let decoderSession: InferenceSession | null = null;
+  /* ── 1. Encoder ────────────────────────────────────────── */
+  let encoderOuts: Record<string, Tensor> | null = null;
   try {
-    decoderSession = await loadModel('sam-vit-b-decoder');
-    logger.log(`Decoder loaded. Inputs: ${decoderSession.inputNames.join(', ')}`);
-  } catch (err) {
-    logger.error(`Decoder failed to load: ${err}. Using fallback.`);
+    const enc = await loadModel('sam-vit-b');
+    const { tensor } = await preprocessImage(imageBuffer);
+    logger.log('Running SAM encoder …');
+    const raw = await enc.run({ pixel_values: tensor });
+    encoderOuts = {};
+    for (const k of Object.keys(raw)) {
+      encoderOuts[k] = raw[k];
+      logger.log(`  encoder output "${k}" shape ${raw[k].dims?.join('×')}`);
+    }
+  } catch (e) {
+    logger.error(`Encoder failed: ${e}`);
   }
 
-  const elements: Array<{ label: string; color: string; area: number; bbox: { x: number; y: number; w: number; h: number } }> = [];
-  const maskRGBA = Buffer.alloc(width * height * 4);
+  /* ── 2. Decoder (if encoder succeeded) ─────────────────── */
+  type Seg = { mask: Float32Array; score: number; h: number; w: number };
+  const segments: Seg[] = [];
 
-  if (decoderSession) {
-    // Step 3: Run decoder with grid of point prompts
-    const gridSize = 8; // 8x8 = 64 point prompts
-    const segments: Array<{ mask: Float32Array; score: number; maskH: number; maskW: number; px: number; py: number }> = [];
+  if (encoderOuts) {
+    try {
+      const dec = await loadModel('sam-vit-b-decoder');
+      logger.log(`Decoder inputs : ${dec.inputNames.join(', ')}`);
+      logger.log(`Decoder outputs: ${dec.outputNames.join(', ')}`);
 
-    logger.log(`Running decoder with ${gridSize}x${gridSize} point grid...`);
+      const GRID = 8;
+      let tried = 0, accepted = 0;
 
-    for (let gy = 0; gy < gridSize; gy++) {
-      for (let gx = 0; gx < gridSize; gx++) {
-        const px = ((gx + 0.5) / gridSize) * SAM_INPUT_SIZE;
-        const py = ((gy + 0.5) / gridSize) * SAM_INPUT_SIZE;
-
-        const result = await runDecoder(decoderSession, imageEmbeddings, px, py);
-        if (result && result.score > 0.6) {
-          segments.push({ ...result, px, py });
-        }
-      }
-    }
-
-    logger.log(`Decoder produced ${segments.length} segments (from 64 points)`);
-
-    // Step 4: Render segments as colored overlay
-    const usedSegments = segments
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10); // Top 10 segments
-
-    for (let si = 0; si < usedSegments.length; si++) {
-      const seg = usedSegments[si];
-      const color = SEGMENT_COLORS[si % SEGMENT_COLORS.length];
-      let pixelCount = 0;
-      let minX = width, maxX = 0, minY = height, maxY = 0;
-      let sumX = 0, sumY = 0;
-
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          // Map to mask coordinates
-          const mx = Math.floor((x / width) * seg.maskW);
-          const my = Math.floor((y / height) * seg.maskH);
-          const maskVal = seg.mask[my * seg.maskW + mx];
-
-          if (maskVal > 0) {
-            const idx = (y * width + x) * 4;
-            // Blend with existing (don't overwrite)
-            if (maskRGBA[idx + 3] === 0) {
-              maskRGBA[idx] = color.r;
-              maskRGBA[idx + 1] = color.g;
-              maskRGBA[idx + 2] = color.b;
-              maskRGBA[idx + 3] = color.a;
-            }
-            pixelCount++;
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-            sumX += x;
-            sumY += y;
+      for (let gy = 0; gy < GRID; gy++) {
+        for (let gx = 0; gx < GRID; gx++) {
+          const px = ((gx + 0.5) / GRID) * SAM_INPUT_SIZE;
+          const py = ((gy + 0.5) / GRID) * SAM_INPUT_SIZE;
+          tried++;
+          try {
+            const seg = await decodePoint(dec, encoderOuts, px, py);
+            if (seg) { segments.push(seg); accepted++; }
+          } catch (err) {
+            if (tried === 1) logger.error(`Decoder point error: ${err}`);
           }
         }
       }
+      logger.log(`Decoder: ${accepted}/${tried} points produced segments`);
+    } catch (e) {
+      logger.error(`Decoder load/run failed: ${e}`);
+    }
+  }
 
-      if (pixelCount > 100) {
-        const centerX = sumX / pixelCount;
-        const centerY = sumY / pixelCount;
-        const label = labelSegment(centerY, centerX, height, width, pixelCount);
+  /* ── 3. Build colour overlay ───────────────────────────── */
+  const rgba = Buffer.alloc(imgW * imgH * 4);
+  const elements: Array<{
+    label: string; color: string; area: number;
+    bbox: { x: number; y: number; w: number; h: number };
+  }> = [];
 
+  if (segments.length > 0) {
+    const top = segments.sort((a, b) => b.score - a.score).slice(0, 10);
+
+    for (let si = 0; si < top.length; si++) {
+      const seg = top[si];
+      const col = SEGMENT_COLORS[si % SEGMENT_COLORS.length];
+      let area = 0, minX = imgW, maxX = 0, minY = imgH, maxY = 0, sumX = 0, sumY = 0;
+
+      for (let y = 0; y < imgH; y++) {
+        for (let x = 0; x < imgW; x++) {
+          const mx = Math.floor((x / imgW) * seg.w);
+          const my = Math.floor((y / imgH) * seg.h);
+          if (seg.mask[my * seg.w + mx] > MASK_THRESHOLD) {
+            const i = (y * imgW + x) * 4;
+            if (rgba[i + 3] === 0) {
+              rgba[i] = col.r; rgba[i+1] = col.g; rgba[i+2] = col.b; rgba[i+3] = 100;
+            }
+            area++;
+            if (x < minX) minX = x; if (x > maxX) maxX = x;
+            if (y < minY) minY = y; if (y > maxY) maxY = y;
+            sumX += x; sumY += y;
+          }
+        }
+      }
+      if (area > 200) {
+        const label = labelByPosition(sumY / area, sumX / area, imgH, imgW);
         elements.push({
           label: `${label}_${si}`,
-          color: `rgba(${color.r},${color.g},${color.b},${color.a / 255})`,
-          area: pixelCount,
+          color: `rgba(${col.r},${col.g},${col.b},0.39)`,
+          area,
           bbox: { x: minX, y: minY, w: maxX - minX, h: maxY - minY },
         });
       }
     }
-
-    logger.log(`Final segments: ${elements.length}`);
+    logger.log(`Rendered ${elements.length} segment overlays`);
   }
 
-  // Fallback: if decoder produced nothing, use position-based heuristic
   if (elements.length === 0) {
-    logger.log('Decoder produced no segments, using position heuristic fallback');
-
-    const regions = [
-      { label: 'ceiling', color: SEGMENT_COLORS[0], yStart: 0, yEnd: 0.2, xStart: 0, xEnd: 1 },
-      { label: 'wall_left', color: SEGMENT_COLORS[1], yStart: 0.2, yEnd: 0.8, xStart: 0, xEnd: 0.15 },
-      { label: 'wall_center', color: SEGMENT_COLORS[2], yStart: 0.2, yEnd: 0.8, xStart: 0.15, xEnd: 0.85 },
-      { label: 'wall_right', color: SEGMENT_COLORS[1], yStart: 0.2, yEnd: 0.8, xStart: 0.85, xEnd: 1 },
-      { label: 'floor', color: SEGMENT_COLORS[3], yStart: 0.8, yEnd: 1, xStart: 0, xEnd: 1 },
-    ];
-
-    for (const r of regions) {
-      const yS = Math.floor(height * r.yStart);
-      const yE = Math.floor(height * r.yEnd);
-      const xS = Math.floor(width * r.xStart);
-      const xE = Math.floor(width * r.xEnd);
-
-      for (let y = yS; y < yE; y++) {
-        for (let x = xS; x < xE; x++) {
-          const idx = (y * width + x) * 4;
-          maskRGBA[idx] = r.color.r;
-          maskRGBA[idx + 1] = r.color.g;
-          maskRGBA[idx + 2] = r.color.b;
-          maskRGBA[idx + 3] = r.color.a;
-        }
-      }
-
-      elements.push({
-        label: r.label,
-        color: `rgba(${r.color.r},${r.color.g},${r.color.b},${r.color.a / 255})`,
-        area: (xE - xS) * (yE - yS),
-        bbox: { x: xS, y: yS, w: xE - xS, h: yE - yS },
-      });
-    }
+    logger.log('No decoder segments — using position heuristic');
+    const fb = positionFallback(imgW, imgH);
+    fb.rgba.copy(rgba);
+    elements.push(...fb.elements);
   }
 
-  // Composite overlay on original photo
-  const maskImage = await sharp(maskRGBA, { raw: { width, height, channels: 4 } }).png().toBuffer();
+  /* ── 4. Composite on original photo ────────────────────── */
+  const overlay = await sharp(rgba, { raw: { width: imgW, height: imgH, channels: 4 } })
+    .png().toBuffer();
+
   const maskBuffer = await sharp(imageBuffer)
-    .composite([{ input: maskImage, blend: 'over' }])
-    .png()
-    .toBuffer();
+    .composite([{ input: overlay, blend: 'over' }])
+    .png().toBuffer();
 
-  const config = getModelConfig('sam-vit-b');
-  const usedDecoder = elements.length > 0 && elements[0].label.includes('_');
-  const modelVersion = usedDecoder ? (config?.version || 'sam-vit-b-v1') : 'sam-heuristic-v1';
-  logger.log(`Segmentation complete: ${elements.length} elements, model: ${modelVersion}`);
+  const version = segments.length > 0
+    ? (getModelConfig('sam-vit-b')?.version || 'sam-vit-b-v1')
+    : 'sam-heuristic-v1';
 
-  return { maskBuffer, elements, modelVersion };
+  logger.log(`Done — ${elements.length} elements, model ${version}`);
+  return { maskBuffer, elements, modelVersion: version };
 }
