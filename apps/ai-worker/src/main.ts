@@ -1,33 +1,71 @@
 /**
  * AI Worker — BullMQ consumer for AI processing jobs
  *
- * This worker handles:
- * - Room segmentation (SAM) — SPEC-005
- * - Visualization generation (SD + ControlNet) — SPEC-006
- *
- * Placeholder entry point — processors added in later specs.
+ * Consumes two queues:
+ * - segmentation: Room photo element detection (mock: edge detection)
+ * - visualization: Design visualization generation (mock: color transforms)
  */
 
+import { Worker } from 'bullmq';
+import IORedis from 'ioredis';
+import { processSegmentation } from './processors/segmentation.processor';
+import { processVisualization } from './processors/visualization.processor';
+import { prisma } from './lib/prisma';
+
 const logger = {
-  log: (msg: string) => console.log(`[AI-Worker] ${msg}`),
-  error: (msg: string) => console.error(`[AI-Worker] ${msg}`),
+  log: (msg: string) => console.log(`[AI-Worker] ${new Date().toISOString()} ${msg}`),
+  error: (msg: string) => console.error(`[AI-Worker] ${new Date().toISOString()} ${msg}`),
 };
 
 async function main() {
-  logger.log('AI Worker starting...');
-  logger.log('No processors registered yet. Waiting for SPEC-005/006.');
-  logger.log('AI Worker ready (idle).');
+  logger.log('Starting AI Worker...');
 
-  // Keep process alive
-  process.on('SIGINT', () => {
-    logger.log('Shutting down gracefully...');
-    process.exit(0);
+  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
+
+  logger.log(`Connected to Redis: ${redisUrl}`);
+
+  // Segmentation worker
+  const segWorker = new Worker('segmentation', processSegmentation, {
+    connection,
+    concurrency: 2,
   });
 
-  process.on('SIGTERM', () => {
-    logger.log('Shutting down gracefully...');
-    process.exit(0);
+  segWorker.on('completed', (job) => {
+    logger.log(`Segmentation job ${job.id} completed`);
   });
+  segWorker.on('failed', (job, err) => {
+    logger.error(`Segmentation job ${job?.id} failed: ${err.message}`);
+  });
+
+  // Visualization worker
+  const vizWorker = new Worker('visualization', processVisualization, {
+    connection,
+    concurrency: 2,
+  });
+
+  vizWorker.on('completed', (job) => {
+    logger.log(`Visualization job ${job.id} completed`);
+  });
+  vizWorker.on('failed', (job, err) => {
+    logger.error(`Visualization job ${job?.id} failed: ${err.message}`);
+  });
+
+  logger.log('AI Worker ready — listening on queues: segmentation, visualization');
+
+  // Graceful shutdown
+  const shutdown = async () => {
+    logger.log('Shutting down gracefully...');
+    await segWorker.close();
+    await vizWorker.close();
+    await prisma.$disconnect();
+    await connection.quit();
+    logger.log('Shutdown complete');
+    process.exit(0);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 main().catch((err) => {
