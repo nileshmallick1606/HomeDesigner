@@ -7,6 +7,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import Button from '@mui/material/Button';
+import { apiClient } from '../../lib/api-client';
 
 interface JobStatusProps {
   jobId: string;
@@ -15,6 +16,11 @@ interface JobStatusProps {
 }
 
 type Status = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+interface JobData {
+  status: Status;
+  error?: string;
+}
 
 export function JobStatus({ jobId, onComplete, onRetry }: JobStatusProps) {
   const [status, setStatus] = useState<Status>('QUEUED');
@@ -25,17 +31,14 @@ export function JobStatus({ jobId, onComplete, onRetry }: JobStatusProps) {
 
     const poll = setInterval(async () => {
       try {
-        const res = await fetch(`/api/ai/jobs/${jobId}`, { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          setStatus(data.status);
-          if (data.status === 'COMPLETED') {
-            clearInterval(poll);
-            onComplete?.();
-          } else if (data.status === 'FAILED') {
-            clearInterval(poll);
-            setError(data.error || 'Processing failed');
-          }
+        const data = await apiClient.fetch<JobData>(`/ai/jobs/${jobId}`);
+        setStatus(data.status);
+        if (data.status === 'COMPLETED') {
+          clearInterval(poll);
+          onComplete?.();
+        } else if (data.status === 'FAILED') {
+          clearInterval(poll);
+          setError(data.error || 'Processing failed');
         }
       } catch {
         // Continue polling
