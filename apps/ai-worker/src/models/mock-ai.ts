@@ -23,6 +23,8 @@ export async function mockSegmentation(imageBuffer: Buffer): Promise<Buffer> {
 /**
  * Mock visualization: apply category-based color transforms.
  * In real mode, this would use Stable Diffusion + ControlNet.
+ *
+ * SPEC-022: Improved transforms for more realistic preview quality.
  */
 export async function mockVisualization(
   imageBuffer: Buffer,
@@ -32,28 +34,28 @@ export async function mockVisualization(
 
   switch (category) {
     case 'CIVIL':
-      // Blue tint — simulates wall paint
-      pipeline = pipeline.tint({ r: 100, g: 130, b: 200 });
+      // Subtle blue wall paint — desaturate slightly then apply soft blue tint
+      pipeline = pipeline.modulate({ saturation: 0.8 }).tint({ r: 140, g: 160, b: 210 });
       break;
     case 'FURNISHINGS':
-      // Warm brightness boost — simulates new furniture lighting
-      pipeline = pipeline.modulate({ brightness: 1.2, saturation: 1.1 });
+      // Warmer, richer furniture look — boost brightness and saturation
+      pipeline = pipeline.modulate({ brightness: 1.15, saturation: 1.2 });
       break;
     case 'BATHROOM_CAT':
-      // Cyan saturation — simulates new tiles
-      pipeline = pipeline.tint({ r: 120, g: 200, b: 200 });
+      // Tile-like cyan — tint then boost saturation for depth
+      pipeline = pipeline.tint({ r: 150, g: 210, b: 210 }).modulate({ saturation: 1.3 });
       break;
     case 'KITCHEN_CAT':
-      // Green tint — simulates cabinet color
-      pipeline = pipeline.tint({ r: 130, g: 190, b: 130 });
+      // Cabinet green — green tint with slight brightness lift
+      pipeline = pipeline.tint({ r: 150, g: 200, b: 150 }).modulate({ brightness: 1.1 });
       break;
     case 'ELECTRICAL':
-      // Warm temperature — simulates new lighting
-      pipeline = pipeline.modulate({ brightness: 1.15 }).tint({ r: 220, g: 190, b: 140 });
+      // Warm glow — brighten then apply warm amber tint
+      pipeline = pipeline.modulate({ brightness: 1.2 }).tint({ r: 240, g: 210, b: 160 });
       break;
     default:
-      // Sepia tone — generic transformation
-      pipeline = pipeline.modulate({ saturation: 0.5 }).tint({ r: 200, g: 170, b: 130 });
+      // Enhanced sepia — lower saturation, slight brightness lift, warm beige tint
+      pipeline = pipeline.modulate({ saturation: 0.4, brightness: 1.05 }).tint({ r: 210, g: 185, b: 150 });
       break;
   }
 
@@ -61,20 +63,24 @@ export async function mockVisualization(
 }
 
 /**
- * Add "AI Preview (Mock)" watermark text overlay.
+ * Add "AI Preview" watermark text overlay.
+ * SPEC-022: Smaller font, lower opacity, shorter text, bottom-right placement.
  */
-export async function addWatermark(imageBuffer: Buffer, text = 'AI Preview (Mock)'): Promise<Buffer> {
+export async function addWatermark(imageBuffer: Buffer, text = 'AI Preview'): Promise<Buffer> {
   const metadata = await sharp(imageBuffer).metadata();
   const width = metadata.width || 800;
   const height = metadata.height || 600;
-  const fontSize = Math.max(16, Math.floor(width / 25));
+  const fontSize = Math.max(12, Math.floor(width / 40));
+
+  const boxWidth = fontSize * text.length * 0.55 + 12;
+  const boxHeight = fontSize + 8;
 
   const svgText = `
     <svg width="${width}" height="${height}">
-      <rect x="${width - fontSize * text.length * 0.55 - 20}" y="${height - fontSize - 20}"
-            width="${fontSize * text.length * 0.55 + 16}" height="${fontSize + 12}"
-            rx="4" fill="rgba(0,0,0,0.6)"/>
-      <text x="${width - 12}" y="${height - 16}"
+      <rect x="${width - boxWidth - 10}" y="${height - boxHeight - 10}"
+            width="${boxWidth}" height="${boxHeight}"
+            rx="3" fill="rgba(0,0,0,0.4)"/>
+      <text x="${width - 8}" y="${height - 16}"
             font-family="Arial, sans-serif" font-size="${fontSize}"
             fill="white" text-anchor="end" font-weight="bold">
         ${text}
