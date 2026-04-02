@@ -107,6 +107,65 @@ export class AiService {
     });
   }
 
+  async getDesign(designId: string) {
+    const design = await this.prisma.design.findUnique({
+      where: { id: designId },
+      include: {
+        visualizations: { orderBy: { createdAt: 'desc' } },
+        room: { select: { id: true, name: true, projectId: true, photos: { take: 1, orderBy: { createdAt: 'desc' } } } },
+      },
+    });
+    if (!design) throw new NotFoundException('Design not found');
+    return design;
+  }
+
+  async deleteDesign(designId: string) {
+    const design = await this.prisma.design.findUnique({
+      where: { id: designId },
+      include: { visualizations: true },
+    });
+    if (!design) throw new NotFoundException('Design not found');
+
+    // Delete visualizations first, then design
+    await this.prisma.visualization.deleteMany({ where: { designId } });
+    await this.prisma.aiJob.deleteMany({ where: { designId } });
+    await this.prisma.design.delete({ where: { id: designId } });
+
+    this.logger.log(`Design deleted: ${designId}`);
+    return { success: true };
+  }
+
+  async regenerateDesign(userId: string, designId: string) {
+    const design = await this.prisma.design.findUnique({
+      where: { id: designId },
+      include: { room: { select: { photos: { take: 1, orderBy: { createdAt: 'desc' } } } } },
+    });
+    if (!design) throw new NotFoundException('Design not found');
+    if (!design.room.photos[0]) throw new BadRequestException('No photos in room');
+
+    await this.checkRateLimit(userId);
+
+    const job = await this.prisma.aiJob.create({
+      data: {
+        type: 'VISUALIZATION',
+        status: 'QUEUED',
+        priority: await this.getUserPriority(userId),
+        userId,
+        roomPhotoId: design.room.photos[0].id,
+        designId,
+      },
+    });
+
+    await this.visualizationQueue.add(
+      'visualize',
+      { jobId: job.id, roomPhotoId: design.room.photos[0].id, designId, userId, category: design.category },
+      { priority: job.priority, attempts: 3, backoff: { type: 'exponential', delay: 10000 } },
+    );
+
+    this.logger.log(`Regeneration queued: ${job.id} for design ${designId}`);
+    return { jobId: job.id, designId, status: 'QUEUED' };
+  }
+
   private async checkRateLimit(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');

@@ -8,18 +8,23 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import Link from 'next/link';
 import { apiClient } from '../../../../../../../../lib/api-client';
 import { BeforeAfterSlider } from '../../../../../../../../components/comparison/before-after-slider';
+import { JobStatus } from '../../../../../../../../components/ai/job-status';
 
 interface Visualization {
   id: string;
   imageUrl: string;
   thumbnailUrl?: string;
-  prompt?: string;
   modelVersion?: string;
   status: string;
   createdAt: string;
@@ -45,22 +50,54 @@ export default function DesignDetailPage() {
   const [design, setDesign] = useState<Design | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [activeJobId, setActiveJobId] = useState('');
 
-  useEffect(() => {
-    // Fetch room to get design data (no separate design endpoint yet)
+  const fetchDesign = () => {
     apiClient
-      .fetch<{ designs: Design[] }>(`/rooms/${roomId}`)
-      .then((room) => {
-        const found = room.designs?.find((d: Design) => d.id === designId);
-        if (found) {
-          setDesign({ ...found, room: { photos: (room as unknown as { photos: Array<{ originalUrl: string }> }).photos } });
-        } else {
-          setError('Design not found');
-        }
-      })
+      .fetch<Design>(`/ai/designs/${designId}`)
+      .then(setDesign)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [roomId, designId]);
+  };
+
+  useEffect(() => {
+    fetchDesign();
+  }, [designId]); // eslint-disable-line
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await apiClient.fetch(`/ai/designs/${designId}`, { method: 'DELETE' });
+      router.push(`/projects/${projectId}/rooms/${roomId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+      setDeleting(false);
+      setDeleteOpen(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    setError('');
+    try {
+      const result = await apiClient.fetch<{ jobId: string }>(`/ai/designs/${designId}/regenerate`, {
+        method: 'POST',
+      });
+      setActiveJobId(result.jobId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Regeneration failed');
+      setRegenerating(false);
+    }
+  };
+
+  const handleJobComplete = () => {
+    setRegenerating(false);
+    setActiveJobId('');
+    fetchDesign();
+  };
 
   if (loading) {
     return (
@@ -70,13 +107,15 @@ export default function DesignDetailPage() {
     );
   }
 
-  if (error || !design) {
+  if (error && !design) {
     return (
       <Container maxWidth="md" sx={{ pt: 3 }}>
-        <Typography color="error">{error || 'Design not found'}</Typography>
+        <Typography color="error">{error}</Typography>
       </Container>
     );
   }
+
+  if (!design) return null;
 
   const completedViz = design.visualizations?.find((v) => v.status === 'COMPLETED');
   const originalPhoto = design.room?.photos?.[0]?.originalUrl;
@@ -96,13 +135,15 @@ export default function DesignDetailPage() {
         {design.category.replace(/_/g, ' ')} Design
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+      <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
         <Chip label={design.status} size="small" />
         <Chip label={`Model: ${completedViz?.modelVersion || 'N/A'}`} size="small" variant="outlined" />
         <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
           Created: {new Date(design.createdAt).toLocaleDateString()}
         </Typography>
       </Box>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {completedViz && originalPhoto ? (
         <BeforeAfterSlider
@@ -116,28 +157,43 @@ export default function DesignDetailPage() {
         </Box>
       )}
 
+      {activeJobId && (
+        <JobStatus jobId={activeJobId} onComplete={handleJobComplete} />
+      )}
+
       <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
-        <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => router.back()}>
-          Regenerate
+        <Button
+          variant="outlined"
+          startIcon={regenerating ? <CircularProgress size={18} /> : <RefreshIcon />}
+          onClick={handleRegenerate}
+          disabled={regenerating}
+        >
+          {regenerating ? 'Regenerating...' : 'Regenerate'}
         </Button>
         <Button
           variant="outlined"
           color="error"
           startIcon={<DeleteIcon />}
-          onClick={async () => {
-            if (confirm('Delete this design?')) {
-              try {
-                await apiClient.fetch(`/ai/designs/${designId}`, { method: 'DELETE' });
-                router.push(`/projects/${projectId}/rooms/${roomId}`);
-              } catch {
-                // Handle error
-              }
-            }
-          }}
+          onClick={() => setDeleteOpen(true)}
         >
           Delete
         </Button>
       </Box>
+
+      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
+        <DialogTitle>Delete Design</DialogTitle>
+        <DialogContent>
+          <Typography>
+            This will permanently delete this design and all its visualizations. This cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
