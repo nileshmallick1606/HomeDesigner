@@ -16,6 +16,7 @@ import { BudgetsModule } from './budgets/budgets.module';
 import { SharingModule } from './sharing/sharing.module';
 import { CommentsModule } from './comments/comments.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ExportModule } from './export/export.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 
 @Module({
@@ -44,6 +45,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
     SharingModule,
     CommentsModule,
     NotificationsModule,
+    ExportModule,
     HealthModule,
   ],
   providers: [
