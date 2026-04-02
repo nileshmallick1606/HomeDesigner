@@ -13,7 +13,11 @@
     "test:unit": "jest --testPathPattern=\\.spec\\.ts$",
     "test:integration": "jest --testPathPattern=\\.integration\\.ts$",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "seed": "ts-node prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1022.0",
