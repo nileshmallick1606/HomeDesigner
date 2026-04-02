@@ -4,6 +4,7 @@ import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { theme } from './theme';
+import { AppSnackbarProvider } from '../components/ui/snackbar-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -41,7 +42,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            {children}
+            <AppSnackbarProvider>
+              {children}
+            </AppSnackbarProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
