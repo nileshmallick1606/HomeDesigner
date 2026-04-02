@@ -44,7 +44,11 @@ export class RoomsService {
       where: { id: roomId, deletedAt: null },
       include: {
         photos: { orderBy: { createdAt: 'desc' }, take: 10 },
-        designs: { orderBy: { updatedAt: 'desc' }, take: 10 },
+        designs: {
+          orderBy: { updatedAt: 'desc' },
+          take: 10,
+          include: { visualizations: { orderBy: { createdAt: 'desc' }, take: 5 } },
+        },
         _count: { select: { photos: true, designs: true } },
       },
     });
