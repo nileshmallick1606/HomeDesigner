@@ -16,6 +16,8 @@ import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import ViewInArIcon from '@mui/icons-material/ViewInAr';
 import Alert from '@mui/material/Alert';
 import { useSnackbar } from 'notistack';
+import { needsConsentPrompt, setAIConsent, hasAIConsent } from '../../../../../../lib/ai-consent';
+import { AIConsentDialog } from '../../../../../../components/ui/ai-consent-dialog';
 import { apiClient } from '../../../../../../lib/api-client';
 import { EmptyState } from '../../../../../../components/ui/empty-state';
 import { PhotoUpload } from '../../../../../../components/media/photo-upload';
@@ -69,6 +71,7 @@ export default function RoomDetailPage() {
   const [preset, setPreset] = useState<'draft' | 'final'>('draft');
   const [generating, setGenerating] = useState(false);
   const [activeJobId, setActiveJobId] = useState('');
+  const [showConsent, setShowConsent] = useState(false);
 
   const fetchRoom = useCallback(() => {
     apiClient
@@ -84,6 +87,13 @@ export default function RoomDetailPage() {
 
   const handleGenerate = async () => {
     if (!selectedCategory || !room || room.photos.length === 0) return;
+
+    // Check consent before first AI generation (RA-DC-4)
+    if (needsConsentPrompt()) {
+      setShowConsent(true);
+      return;
+    }
+
     setGenerating(true);
 
     try {
@@ -342,6 +352,21 @@ export default function RoomDetailPage() {
       <Divider sx={{ my: 3 }} />
       <Typography variant="h6">Budget</Typography>
       <BudgetEditor roomId={roomId} />
+
+      {/* AI Consent Dialog (RA-DC-4) */}
+      <AIConsentDialog
+        open={showConsent}
+        onConsent={() => {
+          setAIConsent(true);
+          setShowConsent(false);
+          handleGenerate(); // Retry now that consent is given
+        }}
+        onDecline={() => {
+          setAIConsent(false);
+          setShowConsent(false);
+          enqueueSnackbar('Cloud AI disabled. Using preview mode.', { variant: 'info' });
+        }}
+      />
     </Container>
   );
 }
