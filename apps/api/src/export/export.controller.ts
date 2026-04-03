@@ -34,4 +34,16 @@ export class ExportController {
     res.setHeader('Content-Disposition', `attachment; filename=comparison-${designId}.jpg`);
     res.send(buffer);
   }
+
+  @Get('project/:projectId/pdf')
+  @ApiOperation({ summary: 'Download project summary as PDF' })
+  async exportProjectPdf(
+    @Param('projectId', ParseUUIDPipe) projectId: string,
+    @Res() res: Response,
+  ) {
+    const buffer = await this.exportService.exportProjectPdf(projectId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=project-${projectId}.pdf`);
+    res.send(buffer);
+  }
 }

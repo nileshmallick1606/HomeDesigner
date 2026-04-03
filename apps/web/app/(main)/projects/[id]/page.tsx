@@ -13,6 +13,8 @@ import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 import AddIcon from '@mui/icons-material/Add';
 import ShareIcon from '@mui/icons-material/Share';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import { downloadBlob } from '../../../../lib/download';
 import IconButton from '@mui/material/IconButton';
 import { ShareDialog } from '../../../../components/sharing/share-dialog';
 import { CommentsPanel } from '../../../../components/comments/comments-panel';
@@ -66,6 +68,7 @@ export default function ProjectDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   useEffect(() => {
     apiClient
@@ -98,9 +101,29 @@ export default function ProjectDetailPage() {
           <Typography variant="h5" fontWeight={700}>
             {project.name}
           </Typography>
-          <IconButton onClick={() => setShareDialogOpen(true)} color="primary">
-            <ShareIcon />
-          </IconButton>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={exportingPdf ? <CircularProgress size={16} /> : <PictureAsPdfIcon />}
+              disabled={exportingPdf}
+              onClick={async () => {
+                setExportingPdf(true);
+                try {
+                  await downloadBlob(
+                    `http://${window.location.hostname}:4000/api/export/project/${projectId}/pdf`,
+                    `${project.name.replace(/\s+/g, '-')}.pdf`,
+                  );
+                } catch { /* snackbar in SPEC-028 */ }
+                setExportingPdf(false);
+              }}
+            >
+              {exportingPdf ? 'Exporting...' : 'PDF'}
+            </Button>
+            <IconButton onClick={() => setShareDialogOpen(true)} color="primary">
+              <ShareIcon />
+            </IconButton>
+          </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 1, mt: 1, alignItems: 'center' }}>
           <Chip label={project.status} size="small" color="default" />

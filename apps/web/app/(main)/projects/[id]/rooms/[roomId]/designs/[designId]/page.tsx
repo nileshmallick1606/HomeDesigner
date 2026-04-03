@@ -16,7 +16,10 @@ import DialogActions from '@mui/material/DialogActions';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import DownloadIcon from '@mui/icons-material/Download';
+import CompareIcon from '@mui/icons-material/Compare';
 import Link from 'next/link';
+import { downloadBlob } from '../../../../../../../../lib/download';
 import { apiClient } from '../../../../../../../../lib/api-client';
 import { BeforeAfterSlider } from '../../../../../../../../components/comparison/before-after-slider';
 import { JobStatus } from '../../../../../../../../components/ai/job-status';
@@ -54,6 +57,7 @@ export default function DesignDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [activeJobId, setActiveJobId] = useState('');
+  const [downloading, setDownloading] = useState('');
 
   const fetchDesign = () => {
     apiClient
@@ -168,6 +172,40 @@ export default function DesignDetailPage() {
           href={`/projects/${projectId}/rooms/${roomId}/designs/${designId}/edit`}
         >
           Edit / Annotate
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={downloading === 'image' ? <CircularProgress size={18} /> : <DownloadIcon />}
+          disabled={!!downloading}
+          onClick={async () => {
+            setDownloading('image');
+            try {
+              await downloadBlob(
+                `http://${window.location.hostname}:4000/api/export/design/${designId}/image?format=jpeg`,
+                `design-${designId}.jpg`,
+              );
+            } catch { /* handled by snackbar in SPEC-028 */ }
+            setDownloading('');
+          }}
+        >
+          {downloading === 'image' ? 'Downloading...' : 'Download Image'}
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={downloading === 'comparison' ? <CircularProgress size={18} /> : <CompareIcon />}
+          disabled={!!downloading}
+          onClick={async () => {
+            setDownloading('comparison');
+            try {
+              await downloadBlob(
+                `http://${window.location.hostname}:4000/api/export/design/${designId}/comparison`,
+                `comparison-${designId}.jpg`,
+              );
+            } catch { /* handled by snackbar in SPEC-028 */ }
+            setDownloading('');
+          }}
+        >
+          {downloading === 'comparison' ? 'Downloading...' : 'Download Comparison'}
         </Button>
         <Button
           variant="outlined"
