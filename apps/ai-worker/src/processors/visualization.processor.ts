@@ -3,7 +3,9 @@ import sharp from 'sharp';
 import { prisma } from '../lib/prisma';
 import * as storage from '../lib/storage';
 import { mockVisualization, addWatermark } from '../models/mock-ai';
-import { generateVisualization } from '../models/stable-diffusion';
+import { generateVisualization as generateSD } from '../models/stable-diffusion';
+import { isReplicateConfigured, generateVisualization as generateReplicate } from '../models/replicate-client';
+import { buildPrompt, getInferenceSteps } from '../models/prompt-builder';
 import { v4 as uuidv4 } from 'uuid';
 
 const logger = {
@@ -16,30 +18,80 @@ export async function processVisualization(job: Job) {
   logger.log(`Processing job ${jobId} for photo ${roomPhotoId}, category: ${category}, preset: ${preset || 'draft'}`);
 
   try {
-    // Update job status → PROCESSING
     await prisma.aiJob.update({
       where: { id: jobId },
       data: { status: 'PROCESSING', startedAt: new Date() },
     });
 
-    // Download original photo
-    const photo = await prisma.roomPhoto.findUniqueOrThrow({
-      where: { id: roomPhotoId },
-    });
-
+    const photo = await prisma.roomPhoto.findUniqueOrThrow({ where: { id: roomPhotoId } });
     const photoBuffer = await storage.download(photo.originalUrl);
     logger.log(`Downloaded photo: ${photoBuffer.length} bytes`);
 
+    const { positive, negative } = buildPrompt(category || 'OTHER');
     const enableRealAI = process.env.ENABLE_REAL_AI?.trim().toLowerCase() === 'true';
+
     let resultBuffer: Buffer;
     let modelVersion: string;
     let prompt: string;
     let useWatermark: boolean;
 
-    if (enableRealAI) {
+    // ── Three-tier execution: Replicate → Self-hosted SD → Mock ──
+
+    if (isReplicateConfigured()) {
+      // TIER 1: Replicate Cloud API (highest quality)
       try {
-        logger.log('Attempting SD + ControlNet visualization...');
-        const result = await generateVisualization(
+        logger.log('Tier 1: Calling Replicate Cloud API...');
+        const result = await generateReplicate(
+          photoBuffer,
+          positive,
+          negative,
+          (preset as 'draft' | 'final') || 'draft',
+        );
+        resultBuffer = result.imageBuffer;
+        modelVersion = result.modelVersion;
+        prompt = positive;
+        useWatermark = false; // No watermark for Replicate (RA-7)
+        logger.log(`Replicate successful: ${modelVersion}`);
+      } catch (replicateError) {
+        logger.error(`Replicate failed: ${replicateError}`);
+
+        // Fall through to Tier 2
+        if (enableRealAI) {
+          try {
+            logger.log('Tier 2: Falling back to self-hosted SD...');
+            const result = await generateSD(
+              photoBuffer,
+              category || 'OTHER',
+              undefined,
+              undefined,
+              (preset as 'draft' | 'final') || 'draft',
+            );
+            resultBuffer = result.imageBuffer;
+            modelVersion = result.modelVersion;
+            prompt = result.prompt;
+            useWatermark = false;
+            logger.log(`Self-hosted SD successful: ${modelVersion}`);
+          } catch (sdError) {
+            logger.error(`Self-hosted SD failed: ${sdError}`);
+            logger.log('Tier 3: Falling back to mock transforms...');
+            resultBuffer = await mockVisualization(photoBuffer, category || 'OTHER');
+            modelVersion = 'mock-fallback-v1';
+            prompt = `Mock ${category} (Replicate+SD fallback)`;
+            useWatermark = true;
+          }
+        } else {
+          logger.log('Tier 3: Falling back to mock transforms...');
+          resultBuffer = await mockVisualization(photoBuffer, category || 'OTHER');
+          modelVersion = 'mock-fallback-v1';
+          prompt = `Mock ${category} (Replicate fallback)`;
+          useWatermark = true;
+        }
+      }
+    } else if (enableRealAI) {
+      // TIER 2: Self-hosted SD (no Replicate key configured)
+      try {
+        logger.log('Tier 2: Self-hosted SD (no Replicate key)...');
+        const result = await generateSD(
           photoBuffer,
           category || 'OTHER',
           undefined,
@@ -49,17 +101,17 @@ export async function processVisualization(job: Job) {
         resultBuffer = result.imageBuffer;
         modelVersion = result.modelVersion;
         prompt = result.prompt;
-        useWatermark = false; // No watermark for real/enhanced AI
-        logger.log(`SD visualization successful: ${modelVersion}`);
+        useWatermark = false;
       } catch (sdError) {
-        logger.error(`SD failed, falling back to mock: ${sdError}`);
+        logger.error(`Self-hosted SD failed: ${sdError}`);
         resultBuffer = await mockVisualization(photoBuffer, category || 'OTHER');
         modelVersion = 'mock-v1';
-        prompt = `Mock ${category} visualization (SD fallback)`;
+        prompt = `Mock ${category} (SD fallback)`;
         useWatermark = true;
       }
     } else {
-      logger.log('Using mock visualization (ENABLE_REAL_AI not set)');
+      // TIER 3: Mock transforms (default)
+      logger.log('Tier 3: Mock visualization (no AI configured)');
       resultBuffer = await mockVisualization(photoBuffer, category || 'OTHER');
       modelVersion = 'mock-v1';
       prompt = `Mock ${category} visualization`;
@@ -85,7 +137,7 @@ export async function processVisualization(job: Job) {
     const thumbKey = `${userId}/visualizations/${vizId}/thumb.webp`;
     const thumbnailUrl = await storage.upload(thumbKey, thumbBuffer);
 
-    // Create Visualization record (AI-DC-4: model version tracking)
+    // Create Visualization record
     await prisma.visualization.create({
       data: {
         id: vizId,
@@ -98,19 +150,18 @@ export async function processVisualization(job: Job) {
         generationParams: {
           category,
           preset: preset || 'draft',
-          mode: enableRealAI ? 'real' : 'mock',
+          mode: isReplicateConfigured() ? 'replicate' : enableRealAI ? 'self-hosted' : 'mock',
           timestamp: new Date().toISOString(),
         } as any,
       },
     });
 
-    // Update job → COMPLETED
     await prisma.aiJob.update({
       where: { id: jobId },
       data: { status: 'COMPLETED', completedAt: new Date() },
     });
 
-    logger.log(`Job ${jobId} completed — visualization ${vizId} (${modelVersion})`);
+    logger.log(`Job ${jobId} completed — ${modelVersion}`);
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : 'Unknown error';
     logger.error(`Job ${jobId} failed: ${errMsg}`);
