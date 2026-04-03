@@ -14,6 +14,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import CircularProgress from '@mui/material/CircularProgress';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useSnackbar } from 'notistack';
 import { apiClient } from '../../lib/api-client';
 
 const CATEGORIES = [
@@ -42,6 +43,7 @@ export function BudgetEditor({ roomId }: { roomId: string }) {
   const [estimatedAmount, setEstimatedAmount] = useState<number>(0);
   const [actualAmount, setActualAmount] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   const fetchBudget = useCallback(() => {
     setLoading(true);
@@ -66,8 +68,10 @@ export function BudgetEditor({ roomId }: { roomId: string }) {
       setEstimatedAmount(0);
       setActualAmount(0);
       fetchBudget();
+      enqueueSnackbar('Budget item added', { variant: 'success' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add item');
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to add item', { variant: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -79,8 +83,10 @@ export function BudgetEditor({ roomId }: { roomId: string }) {
         method: 'DELETE',
       });
       fetchBudget();
+      enqueueSnackbar('Budget item removed', { variant: 'success' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete item');
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete item', { variant: 'error' });
     }
   };
 

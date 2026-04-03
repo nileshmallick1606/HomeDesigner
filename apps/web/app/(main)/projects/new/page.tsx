@@ -10,10 +10,12 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
+import { useSnackbar } from 'notistack';
 import { apiClient } from '../../../../lib/api-client';
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const { enqueueSnackbar } = useSnackbar();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
@@ -34,9 +36,11 @@ export default function NewProjectPage() {
           overallBudget: budget ? Number(budget) : undefined,
         },
       });
+      enqueueSnackbar('Project created!', { variant: 'success' });
       router.push(`/projects/${project.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create project');
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create project', { variant: 'error' });
     } finally {
       setLoading(false);
     }

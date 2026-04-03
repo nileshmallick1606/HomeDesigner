@@ -6,6 +6,7 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import LinearProgress from '@mui/material/LinearProgress';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useSnackbar } from 'notistack';
 // Upload uses fetch directly for FormData support
 
 interface PhotoUploadProps {
@@ -18,6 +19,7 @@ export function PhotoUpload({ roomId, onUploadComplete }: PhotoUploadProps) {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { enqueueSnackbar } = useSnackbar();
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,9 +53,11 @@ export function PhotoUpload({ roomId, onUploadComplete }: PhotoUploadProps) {
       }
 
       setProgress(100);
+      enqueueSnackbar('Photo uploaded!', { variant: 'success' });
       onUploadComplete?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
+      enqueueSnackbar(err instanceof Error ? err.message : 'Upload failed', { variant: 'error' });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

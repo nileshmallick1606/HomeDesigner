@@ -15,6 +15,7 @@ import PaletteIcon from '@mui/icons-material/Palette';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import ViewInArIcon from '@mui/icons-material/ViewInAr';
 import Alert from '@mui/material/Alert';
+import { useSnackbar } from 'notistack';
 import { apiClient } from '../../../../../../lib/api-client';
 import { EmptyState } from '../../../../../../components/ui/empty-state';
 import { PhotoUpload } from '../../../../../../components/media/photo-upload';
@@ -56,6 +57,7 @@ export default function RoomDetailPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { enqueueSnackbar } = useSnackbar();
 
   // Segmentation state
   const [segmenting, setSegmenting] = useState(false);
@@ -94,8 +96,10 @@ export default function RoomDetailPage() {
         },
       });
       setActiveJobId(result.jobId);
+      enqueueSnackbar('Visualization started!', { variant: 'success' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start visualization');
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to start visualization', { variant: 'error' });
       setGenerating(false);
     }
   };
@@ -112,8 +116,10 @@ export default function RoomDetailPage() {
         json: { roomPhotoId: room.photos[0].id },
       });
       setSegJobId(result.jobId);
+      enqueueSnackbar('Detection started!', { variant: 'success' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start segmentation');
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to start segmentation', { variant: 'error' });
       setSegmenting(false);
     }
   };

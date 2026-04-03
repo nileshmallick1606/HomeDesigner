@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import SendIcon from '@mui/icons-material/Send';
+import { useSnackbar } from 'notistack';
 import { apiClient } from '../../lib/api-client';
 
 interface Comment {
@@ -30,6 +31,7 @@ export function CommentsPanel({ projectId, roomId }: CommentsPanelProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   const fetchComments = async () => {
     try {
@@ -58,8 +60,9 @@ export function CommentsPanel({ projectId, roomId }: CommentsPanelProps) {
       await apiClient.fetch('/comments', { method: 'POST', json: body });
       setNewComment('');
       await fetchComments();
-    } catch {
-      // handle error silently
+      enqueueSnackbar('Comment posted', { variant: 'success' });
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to post comment', { variant: 'error' });
     } finally {
       setSubmitting(false);
     }

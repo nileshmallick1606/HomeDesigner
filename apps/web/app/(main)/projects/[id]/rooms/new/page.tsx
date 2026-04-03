@@ -19,6 +19,7 @@ import DiningIcon from '@mui/icons-material/Dining';
 import BalconyIcon from '@mui/icons-material/Balcony';
 import BuildIcon from '@mui/icons-material/Build';
 import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize';
+import { useSnackbar } from 'notistack';
 import { apiClient } from '../../../../../../lib/api-client';
 
 const ROOM_TYPES = [
@@ -36,6 +37,7 @@ export default function NewRoomPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
+  const { enqueueSnackbar } = useSnackbar();
 
   const [selectedType, setSelectedType] = useState('');
   const [name, setName] = useState('');
@@ -55,9 +57,10 @@ export default function NewRoomPage() {
         method: 'POST',
         json: { name, type: selectedType },
       });
+      enqueueSnackbar('Room added!', { variant: 'success' });
       router.push(`/projects/${projectId}`);
-    } catch {
-      // TODO: Show error
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to add room', { variant: 'error' });
     } finally {
       setLoading(false);
     }

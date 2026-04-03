@@ -20,6 +20,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import CompareIcon from '@mui/icons-material/Compare';
 import Link from 'next/link';
 import { downloadBlob } from '../../../../../../../../lib/download';
+import { useSnackbar } from 'notistack';
 import { apiClient } from '../../../../../../../../lib/api-client';
 import { BeforeAfterSlider } from '../../../../../../../../components/comparison/before-after-slider';
 import { JobStatus } from '../../../../../../../../components/ai/job-status';
@@ -58,6 +59,7 @@ export default function DesignDetailPage() {
   const [regenerating, setRegenerating] = useState(false);
   const [activeJobId, setActiveJobId] = useState('');
   const [downloading, setDownloading] = useState('');
+  const { enqueueSnackbar } = useSnackbar();
 
   const fetchDesign = () => {
     apiClient
@@ -75,9 +77,11 @@ export default function DesignDetailPage() {
     setDeleting(true);
     try {
       await apiClient.fetch(`/ai/designs/${designId}`, { method: 'DELETE' });
+      enqueueSnackbar('Design deleted', { variant: 'success' });
       router.push(`/projects/${projectId}/rooms/${roomId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Delete failed');
+      enqueueSnackbar(err instanceof Error ? err.message : 'Delete failed', { variant: 'error' });
       setDeleting(false);
       setDeleteOpen(false);
     }
@@ -91,8 +95,10 @@ export default function DesignDetailPage() {
         method: 'POST',
       });
       setActiveJobId(result.jobId);
+      enqueueSnackbar('Regenerating...', { variant: 'success' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Regeneration failed');
+      enqueueSnackbar(err instanceof Error ? err.message : 'Regeneration failed', { variant: 'error' });
       setRegenerating(false);
     }
   };
@@ -184,7 +190,8 @@ export default function DesignDetailPage() {
                 `http://${window.location.hostname}:4000/api/export/design/${designId}/image?format=jpeg`,
                 `design-${designId}.jpg`,
               );
-            } catch { /* handled by snackbar in SPEC-028 */ }
+              enqueueSnackbar('Downloaded!', { variant: 'success' });
+            } catch (err) { enqueueSnackbar(err instanceof Error ? err.message : 'Download failed', { variant: 'error' }); }
             setDownloading('');
           }}
         >
@@ -201,7 +208,8 @@ export default function DesignDetailPage() {
                 `http://${window.location.hostname}:4000/api/export/design/${designId}/comparison`,
                 `comparison-${designId}.jpg`,
               );
-            } catch { /* handled by snackbar in SPEC-028 */ }
+              enqueueSnackbar('Downloaded!', { variant: 'success' });
+            } catch (err) { enqueueSnackbar(err instanceof Error ? err.message : 'Download failed', { variant: 'error' }); }
             setDownloading('');
           }}
         >

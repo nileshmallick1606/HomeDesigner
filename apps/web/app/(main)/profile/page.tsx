@@ -15,18 +15,18 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Alert from '@mui/material/Alert';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
+import { useSnackbar } from 'notistack';
 import { useAuth } from '../../../lib/auth-context';
 import { apiClient } from '../../../lib/api-client';
 
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const [editName, setEditName] = useState(user?.name || '');
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -35,17 +35,15 @@ export default function ProfilePage() {
   const handleSaveName = async () => {
     if (!editName.trim() || editName === user.name) return;
     setSaving(true);
-    setSaved(false);
     try {
       await apiClient.fetch('/users/me', {
         method: 'PATCH',
         json: { name: editName.trim() },
       });
       await refreshUser();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch {
-      // Error handled by apiClient
+      enqueueSnackbar('Name updated!', { variant: 'success' });
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to update name', { variant: 'error' });
     } finally {
       setSaving(false);
     }
@@ -55,8 +53,10 @@ export default function ProfilePage() {
     setDeleting(true);
     try {
       await apiClient.fetch('/users/me', { method: 'DELETE' });
+      enqueueSnackbar('Account deleted', { variant: 'success' });
       logout();
-    } catch {
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to delete account', { variant: 'error' });
       setDeleting(false);
     }
   };
@@ -106,7 +106,6 @@ export default function ProfilePage() {
               {saving ? 'Saving...' : 'Save'}
             </Button>
           </Box>
-          {saved && <Alert severity="success" sx={{ mt: 1 }}>Name updated!</Alert>}
         </CardContent>
       </Card>
 

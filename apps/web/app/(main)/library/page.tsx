@@ -31,6 +31,7 @@ import WeekendIcon from '@mui/icons-material/Weekend';
 import DiningIcon from '@mui/icons-material/Dining';
 import BalconyIcon from '@mui/icons-material/Balcony';
 import { EmptyState } from '../../../components/ui/empty-state';
+import { useSnackbar } from 'notistack';
 import { apiClient } from '../../../lib/api-client';
 
 const ROOM_TYPES = ['All', 'BATHROOM', 'KITCHEN', 'BEDROOM', 'LIVING_ROOM', 'DINING_ROOM', 'BALCONY'];
@@ -75,6 +76,7 @@ export default function LibraryPage() {
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState('');
   const router = useRouter();
+  const { enqueueSnackbar } = useSnackbar();
 
   const selectedType = ROOM_TYPES[selectedTab];
 
@@ -261,12 +263,14 @@ export default function LibraryPage() {
                       method: 'POST',
                       json: { roomId: selectedRoomId },
                     });
+                    enqueueSnackbar('Template applied!', { variant: 'success' });
                     setSelectedTemplate(null);
                     setSelectedProjectId('');
                     setSelectedRoomId('');
                     router.push(`/projects/${result.projectId}/rooms/${result.roomId}`);
                   } catch (err) {
                     setApplyError(err instanceof Error ? err.message : 'Failed to apply template');
+                    enqueueSnackbar(err instanceof Error ? err.message : 'Failed to apply template', { variant: 'error' });
                   } finally {
                     setApplying(false);
                   }

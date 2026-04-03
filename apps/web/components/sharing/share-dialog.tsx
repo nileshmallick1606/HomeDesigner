@@ -17,6 +17,7 @@ import Typography from '@mui/material/Typography';
 import TextField from '@mui/material/TextField';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useSnackbar } from 'notistack';
 import { apiClient } from '../../lib/api-client';
 
 interface ShareLink {
@@ -39,6 +40,7 @@ export function ShareDialog({ projectId, open, onClose }: ShareDialogProps) {
   const [generatedLink, setGeneratedLink] = useState('');
   const [links, setLinks] = useState<ShareLink[]>([]);
   const [loading, setLoading] = useState(false);
+  const { enqueueSnackbar } = useSnackbar();
 
   const fetchLinks = async () => {
     try {
@@ -69,8 +71,9 @@ export function ShareDialog({ projectId, open, onClose }: ShareDialogProps) {
       });
       setGeneratedLink(`${window.location.origin}/share/${data.token}`);
       fetchLinks();
-    } catch {
-      // handle error silently
+      enqueueSnackbar('Share link created!', { variant: 'success' });
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to create share link', { variant: 'error' });
     } finally {
       setLoading(false);
     }
@@ -86,8 +89,9 @@ export function ShareDialog({ projectId, open, onClose }: ShareDialogProps) {
         method: 'DELETE',
       });
       setLinks((prev) => prev.filter((l) => l.id !== linkId));
-    } catch {
-      // handle error silently
+      enqueueSnackbar('Link revoked', { variant: 'success' });
+    } catch (err) {
+      enqueueSnackbar(err instanceof Error ? err.message : 'Failed to revoke link', { variant: 'error' });
     }
   };
 
